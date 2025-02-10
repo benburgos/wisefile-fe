@@ -1,8 +1,9 @@
 <script>
+	import '../app.css';
+	import SideNav from '$lib/components/Nav/SideNav.svelte';
 	import { auth } from '$lib/stores/auth';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import '../app.css';
 
 	let isAuthenticated = false;
 
@@ -18,4 +19,9 @@
 	}
 </script>
 
-<slot />
+<div class="flex">
+	<SideNav />
+	<main class="flex-grow p-4">
+		<slot />
+	</main>
+</div>
