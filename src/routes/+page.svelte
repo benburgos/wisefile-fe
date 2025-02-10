@@ -1,9 +1,27 @@
 <script>
-	// Placeholder logic for login form submission
+	import { auth } from '$lib/stores/auth';
+	import { onMount } from 'svelte';
+
 	let username = '';
 	let password = '';
+
+	// Redirect authenticated users
+	onMount(() => {
+		auth.subscribe(({ isAuthenticated }) => {
+			if (isAuthenticated) {
+				window.location.href = '/dashboard';
+			}
+		});
+	});
+
 	function handleLogin() {
-		alert(`Logging in with username: ${username}`);
+		// Placeholder: Simulate authentication
+		auth.set({
+			isAuthenticated: true,
+			user: { username },
+			role: 'admin'
+		});
+		alert(`Welcome, ${username}!`);
 	}
 </script>
 
