@@ -1,29 +1,32 @@
 <script>
 	import { auth } from '$lib/stores/auth';
 
-	// Placeholder for dynamic role-based menu
-	let menu = [
-		{ title: 'Dashboard', path: '/dashboard' },
-		{ title: 'Cases', path: '/cases' },
-		{ title: 'Documents', path: '/documents' }
-	];
+	let userRole = null;
 
-	$: {
-		auth.subscribe(({ role }) => {
-			// Modify menu based on user role
-			if (role === 'admin') {
-				menu.push({ title: 'Admin Panel', path: '/admin' });
-			}
-		});
-	}
+	// Subscribe to auth store
+	$: auth.subscribe(({ role }) => {
+		userRole = role;
+	});
+
+	// Define menu items based on role
+	const menu = [
+		{ title: 'Dashboard', path: '/dashboard', roles: ['admin', 'user'] },
+		{ title: 'Cases', path: '/cases', roles: ['admin', 'user'] },
+		{ title: 'Documents', path: '/documents', roles: ['admin', 'user', 'viewer'] },
+		{ title: 'Messaging', path: '/messaging', roles: ['admin', 'user'] },
+		{ title: 'Analytics', path: '/analytics', roles: ['admin'] },
+		{ title: 'Admin Panel', path: '/admin', roles: ['admin'] }
+	];
 </script>
 
 <nav class="h-screen w-64 bg-gray-800 p-4 text-white">
 	<ul>
 		{#each menu as item}
-			<li class="rounded px-4 py-2 hover:bg-gray-600">
-				<a href={item.path}>{item.title}</a>
-			</li>
+			{#if userRole && item.roles.includes(userRole)}
+				<li class="rounded px-4 py-2 hover:bg-gray-600">
+					<a href={item.path}>{item.title}</a>
+				</li>
+			{/if}
 		{/each}
 	</ul>
 </nav>
