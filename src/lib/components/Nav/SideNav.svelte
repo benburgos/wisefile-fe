@@ -8,13 +8,13 @@
 		userRole = role;
 	});
 
-	// Define menu items based on role
+	// Define role-based navigation
 	const menu = [
-		{ title: 'Dashboard', path: '/dashboard', roles: ['admin', 'user'] },
-		{ title: 'Cases', path: '/cases', roles: ['admin', 'user'] },
-		{ title: 'Documents', path: '/documents', roles: ['admin', 'user', 'viewer'] },
-		{ title: 'Messaging', path: '/messaging', roles: ['admin', 'user'] },
-		{ title: 'Analytics', path: '/analytics', roles: ['admin'] },
+		{ title: 'Dashboard', path: '/dashboard', roles: ['admin', 'ops', 'lawyer', 'client'] },
+		{ title: 'Cases', path: '/cases', roles: ['admin', 'ops', 'lawyer'] },
+		{ title: 'Documents', path: '/documents', roles: ['admin', 'ops', 'lawyer', 'client'] },
+		{ title: 'Messaging', path: '/messaging', roles: ['admin', 'ops', 'lawyer', 'client'] },
+		{ title: 'Analytics', path: '/analytics', roles: ['admin', 'ops'] },
 		{ title: 'Admin Panel', path: '/admin', roles: ['admin'] }
 	];
 </script>

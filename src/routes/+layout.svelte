@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onMount, onDestroy } from 'svelte';
+	import RoleSwitcher from '$lib/components/RoleSwitcher.svelte';
 
 	let isAuthenticated = false;
 	let userRole = null;
@@ -27,6 +28,9 @@
 	{#if isAuthenticated}
 		<aside class="h-screen w-64 bg-gray-800 text-white">
 			<slot name="sidebar" />
+			<div class="p-4">
+				<RoleSwitcher />
+			</div>
 		</aside>
 	{/if}
 	<main class="flex-1 p-4">
