@@ -1,19 +1,31 @@
 <script>
+	import { loginUser } from '$lib/stores/auth';
+	import { onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth';
-	import { goto } from '$app/navigation';
 
 	let username = '';
 	let password = '';
 
-	function handleLogin() {
-		auth.set({
-			isAuthenticated: true,
-			user: { username },
-			role: 'admin',
-			token: 'placeholder-token'
+	// Redirect authenticated users
+	onMount(() => {
+		auth.subscribe(({ isAuthenticated }) => {
+			if (isAuthenticated) {
+				window.location.href = '/dashboard';
+			}
 		});
+	});
 
-		goto('/dashboard');
+	function handleLogin() {
+		// Placeholder user data (this will be replaced with real authentication later)
+		const userData = {
+			username,
+			role: 'client', // Default role for testing
+			token: 'test-token' // Placeholder token
+		};
+
+		// Use the centralized auth function
+		loginUser(userData);
+		alert(`Welcome, ${username}!`);
 	}
 </script>
 
