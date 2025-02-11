@@ -14,11 +14,11 @@
 	}
 </script>
 
-<div class="rounded bg-gray-200 p-4">
-	<label for="role-select" class="mb-2 block font-semibold">Switch Role:</label>
-	<select id="role-select" bind:value={selectedRole} class="rounded border p-2">
+<div class="rounded bg-gray-600 p-4">
+	<label for="role-select" class="mb-2 block font-semibold text-white">Switch Role:</label>
+	<select id="role-select" bind:value={selectedRole} class="rounded border bg-white p-2 text-black">
 		{#each roles as role}
-			<option value={role}>{role}</option>
+			<option value={role} class="text-black">{role}</option>
 		{/each}
 	</select>
 	<button
