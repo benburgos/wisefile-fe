@@ -1,27 +1,19 @@
 <script>
 	import { auth } from '$lib/stores/auth';
-	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 
 	let username = '';
 	let password = '';
 
-	// Redirect authenticated users
-	onMount(() => {
-		auth.subscribe(({ isAuthenticated }) => {
-			if (isAuthenticated) {
-				window.location.href = '/dashboard';
-			}
-		});
-	});
-
 	function handleLogin() {
-		// Placeholder: Simulate authentication
 		auth.set({
 			isAuthenticated: true,
 			user: { username },
-			role: 'admin'
+			role: 'admin',
+			token: 'placeholder-token'
 		});
-		alert(`Welcome, ${username}!`);
+
+		goto('/dashboard');
 	}
 </script>
 
