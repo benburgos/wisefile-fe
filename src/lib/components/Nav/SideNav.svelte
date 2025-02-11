@@ -1,37 +1,75 @@
 <script>
-	import { auth } from '$lib/stores/auth';
-	import RoleSwitcher from '$lib/components/RoleSwitcher.svelte';
+	import { auth, logoutUser } from '$lib/stores/auth';
 
+	let isAuthenticated = false;
 	let userRole = null;
 
-	// Subscribe to auth store
-	$: auth.subscribe(({ role }) => {
+	auth.subscribe(({ isAuthenticated: authStatus, role }) => {
+		isAuthenticated = authStatus;
 		userRole = role;
 	});
 
-	const menu = [
-		{ title: 'Dashboard', path: '/dashboard', roles: ['admin', 'ops', 'lawyer', 'client'] },
-		{ title: 'Cases', path: '/cases', roles: ['admin', 'ops', 'lawyer'] },
-		{ title: 'Documents', path: '/documents', roles: ['admin', 'ops', 'lawyer', 'client'] },
-		{ title: 'Messaging', path: '/messaging', roles: ['admin', 'ops', 'lawyer', 'client'] },
-		{ title: 'Analytics', path: '/analytics', roles: ['admin', 'ops'] },
-		{ title: 'Admin Panel', path: '/admin', roles: ['admin'] }
-	];
+	// Navigation links based on roles
+	const navLinks = {
+		admin: [
+			{ name: 'Dashboard', path: '/dashboard' },
+			{ name: 'Cases', path: '/cases' },
+			{ name: 'Documents', path: '/documents' },
+			{ name: 'Messaging', path: '/messaging' },
+			{ name: 'Analytics', path: '/analytics' },
+			{ name: 'Admin Panel', path: '/admin' }
+		],
+		ops: [
+			{ name: 'Dashboard', path: '/dashboard' },
+			{ name: 'Cases', path: '/cases' },
+			{ name: 'Messaging', path: '/messaging' }
+		],
+		lawyer: [
+			{ name: 'Dashboard', path: '/dashboard' },
+			{ name: 'Cases', path: '/cases' },
+			{ name: 'Documents', path: '/documents' }
+		],
+		client: [
+			{ name: 'Dashboard', path: '/dashboard' },
+			{ name: 'Cases', path: '/cases' }
+		]
+	};
 </script>
 
-<nav class="flex h-screen w-64 flex-col justify-between bg-gray-800 p-4 text-white">
+<nav class="flex h-full flex-col bg-gray-800 p-4 text-white">
 	<ul class="flex-grow">
-		{#each menu as item}
-			{#if userRole && item.roles.includes(userRole)}
-				<li class="rounded px-4 py-2 hover:bg-gray-600">
-					<a href={item.path}>{item.title}</a>
-				</li>
-			{/if}
+		{#each navLinks[userRole] as link}
+			<li class="mb-2">
+				<a href={link.path} class="block px-4 py-2 hover:bg-gray-700">
+					{link.name}
+				</a>
+			</li>
 		{/each}
 	</ul>
 
-	<!-- Move RoleSwitcher to the bottom of the nav -->
-	<div class="mt-auto border-t border-gray-700 pt-4">
-		<RoleSwitcher />
+	<!-- Role Switcher -->
+	<div class="bg-gray-700 p-4">
+		<label for="role-select" class="mb-2 block font-semibold text-white">Switch Role:</label>
+		<select id="role-select" bind:value={userRole} class="rounded border p-2 text-black">
+			{#each Object.keys(navLinks) as role}
+				<option value={role} class="text-black">{role}</option>
+			{/each}
+		</select>
+		<button
+			on:click={() => auth.set({ isAuthenticated: true, role: userRole })}
+			class="ml-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-700"
+		>
+			Set Role
+		</button>
+	</div>
+
+	<!-- Logout Button -->
+	<div class="bg-gray-700 p-4">
+		<button
+			on:click={logoutUser}
+			class="w-full rounded bg-red-500 px-4 py-2 text-white hover:bg-red-700"
+		>
+			Logout
+		</button>
 	</div>
 </nav>

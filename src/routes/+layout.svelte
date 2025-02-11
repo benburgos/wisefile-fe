@@ -3,9 +3,8 @@
 	import { auth } from '$lib/stores/auth';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { onMount, onDestroy } from 'svelte';
+	import { onDestroy } from 'svelte';
 	import SideNav from '$lib/components/Nav/SideNav.svelte';
-	import RoleSwitcher from '$lib/components/RoleSwitcher.svelte';
 
 	let isAuthenticated = false;
 	let userRole = null;
