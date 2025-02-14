@@ -25,7 +25,6 @@
 
 		// Use the centralized auth function
 		loginUser(userData);
-		alert(`Welcome, ${username}!`);
 	}
 </script>
 
