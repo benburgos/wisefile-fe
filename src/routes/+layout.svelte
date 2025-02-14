@@ -3,34 +3,29 @@
 	import { auth } from '$lib/stores/auth';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import SideNav from '$lib/components/Nav/SideNav.svelte';
 
 	let isAuthenticated = false;
 	let userRole = null;
-	let loading = true;
+	let loading = true; // 🚀 Add loading state
 
-	let unsubscribe = auth.subscribe((authState) => {
-		// Ensure authState exists before accessing properties
-		if (authState && typeof authState === 'object') {
-			isAuthenticated = authState.isAuthenticated ?? false;
-			userRole = authState.role ?? null;
-		} else {
-			isAuthenticated = false;
-			userRole = null;
-		}
-		loading = false;
+	let unsubscribe = auth.subscribe(({ isAuthenticated: authStatus, role }) => {
+		isAuthenticated = authStatus;
+		userRole = role;
 	});
 
-	// Redirect only after the auth state is determined
-	$: if (
-		!loading &&
-		typeof window !== 'undefined' &&
-		!isAuthenticated &&
-		$page.url.pathname !== '/'
-	) {
+	// Ensure redirect only happens on client side
+	$: if (typeof window !== 'undefined' && isAuthenticated === false && $page.url.pathname !== '/') {
 		goto('/');
 	}
+
+	// Delay the UI render to avoid flickering
+	onMount(() => {
+		setTimeout(() => {
+			loading = false;
+		}, 500); // ⏳ Adjust the delay time (in milliseconds)
+	});
 
 	onDestroy(() => {
 		unsubscribe();
@@ -38,7 +33,7 @@
 </script>
 
 {#if loading}
-	<!-- Show a loading screen while auth state is being determined -->
+	<!-- 🚀 Show a loading indicator -->
 	<div class="flex h-screen items-center justify-center bg-gray-100">
 		<h2 class="text-2xl font-semibold">Loading...</h2>
 	</div>
