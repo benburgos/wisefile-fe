@@ -38,7 +38,9 @@ export function loginUser(userData) {
 	auth.set(authData);
 
 	if (browser) {
-		document.cookie = `auth=${encodeURIComponent(JSON.stringify(authData))}; path=/; Secure; SameSite=Strict`;
+		document.cookie = `auth=${encodeURIComponent(
+			JSON.stringify(authData)
+		)}; path=/; Secure; SameSite=Strict`;
 	}
 }
 
