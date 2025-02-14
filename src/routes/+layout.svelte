@@ -6,46 +6,41 @@
 	import { onDestroy, onMount } from 'svelte';
 	import SideNav from '$lib/components/Nav/SideNav.svelte';
 
-	let isAuthenticated = false;
+	let isAuthenticated = null;
 	let userRole = null;
-	let loading = true; // 🚀 Add loading state
+	let unsubscribe;
 
-	let unsubscribe = auth.subscribe(({ isAuthenticated: authStatus, role }) => {
-		isAuthenticated = authStatus;
-		userRole = role;
+	onMount(() => {
+		unsubscribe = auth.subscribe(({ isAuthenticated: authStatus, role }) => {
+			isAuthenticated = authStatus;
+			userRole = role;
+		});
 	});
 
-	// Ensure redirect only happens on client side
-	$: if (typeof window !== 'undefined' && isAuthenticated === false && $page.url.pathname !== '/') {
-		goto('/');
+	// Delay before redirecting to avoid flicker
+	$: if (
+		isAuthenticated !== null &&
+		typeof window !== 'undefined' &&
+		!isAuthenticated &&
+		$page.url.pathname !== '/'
+	) {
+		setTimeout(() => {
+			goto('/');
+		}, 500); // Adjust delay time as needed
 	}
 
-	// Delay the UI render to avoid flickering
-	onMount(() => {
-		setTimeout(() => {
-			loading = false;
-		}, 500); // ⏳ Adjust the delay time (in milliseconds)
-	});
-
 	onDestroy(() => {
-		unsubscribe();
+		if (unsubscribe) unsubscribe();
 	});
 </script>
 
-{#if loading}
-	<!-- 🚀 Show a loading indicator -->
-	<div class="flex h-screen items-center justify-center bg-gray-100">
-		<h2 class="text-2xl font-semibold">Loading...</h2>
-	</div>
-{:else}
-	<div class="flex">
-		{#if isAuthenticated}
-			<aside class="h-screen w-64 bg-gray-800 text-white">
-				<SideNav />
-			</aside>
-		{/if}
-		<main class="flex-1 p-4">
-			<slot />
-		</main>
-	</div>
-{/if}
+<div class="flex">
+	{#if isAuthenticated}
+		<aside class="h-screen w-64 bg-gray-800 text-white">
+			<SideNav />
+		</aside>
+	{/if}
+	<main class="flex-1 p-4">
+		<slot />
+	</main>
+</div>
