@@ -1,30 +1,20 @@
-import { browser } from '$app/environment';
-import { redirect } from '@sveltejs/kit';
+import { auth } from '$lib/stores/auth';
 
-export function load({ url, cookies }) {
-	if (!browser) return {}; // Prevents SSR issues
+/** @type {import('./$types').LayoutLoad} */
+export function load() {
+	let authState;
 
-	const authCookie = cookies.get('auth'); // Retrieve authentication cookie
+	// Subscribe to auth store safely
+	auth.subscribe((state) => {
+		authState = state;
+	})();
 
-	let isAuthenticated = false;
-
-	if (authCookie) {
-		try {
-			const authData = JSON.parse(authCookie);
-			isAuthenticated = authData.isAuthenticated;
-		} catch (error) {
-			console.error('Failed to parse auth cookie:', error);
-		}
-	}
-
-	console.log('Server-side isAuthenticated:', isAuthenticated); // Debugging
-
-	// Redirect unauthenticated users to login
-	if (!isAuthenticated && url.pathname !== '/') {
-		throw redirect(302, '/');
+	// Ensure authState is properly structured
+	if (!authState || typeof authState !== 'object') {
+		authState = { isAuthenticated: false, user: null, role: null };
 	}
 
 	return {
-		props: { isAuthenticated } // ✅ Ensure this is passed to +layout.svelte
+		auth: authState
 	};
 }

@@ -29,7 +29,7 @@ if (browser) {
 	});
 }
 
-// Log in function
+// Log in function (ensures cookie is properly set)
 export function loginUser(userData) {
 	const authData = {
 		isAuthenticated: true,
@@ -37,11 +37,12 @@ export function loginUser(userData) {
 		role: userData.role,
 		token: userData.token
 	};
+
 	auth.set(authData);
 	if (browser) updateAuthCookie(authData);
 }
 
-// Log out function
+// Log out function (ensures cookie is properly cleared)
 export function logoutUser() {
 	auth.set({
 		isAuthenticated: false,
