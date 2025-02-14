@@ -4,6 +4,7 @@ import { browser } from '$app/environment';
 function getStoredAuth() {
 	if (!browser) return { isAuthenticated: false, user: null, role: null, token: null };
 
+	// Retrieve authentication state from cookies
 	const stored = document.cookie.split('; ').find((row) => row.startsWith('auth='));
 	if (stored) {
 		try {
@@ -18,31 +19,30 @@ function getStoredAuth() {
 
 export const auth = writable(getStoredAuth());
 
-function updateAuthCookie(value) {
-	document.cookie = `auth=${encodeURIComponent(JSON.stringify(value))}; path=/; Secure; SameSite=Strict`;
-}
-
-// Sync store with cookies
+// Sync store with cookies on changes
 if (browser) {
-	auth.subscribe((value) => {
-		updateAuthCookie(value);
+	document.addEventListener('cookiechange', () => {
+		auth.set(getStoredAuth());
 	});
 }
 
-// Log in function (ensures cookie is properly set)
+// Temporary login function (will be replaced by backend authentication)
 export function loginUser(userData) {
 	const authData = {
 		isAuthenticated: true,
 		user: userData,
 		role: userData.role,
-		token: userData.token
+		token: 'fake-token'
 	};
 
 	auth.set(authData);
-	if (browser) updateAuthCookie(authData);
+
+	if (browser) {
+		document.cookie = `auth=${encodeURIComponent(JSON.stringify(authData))}; path=/; Secure; SameSite=Strict`;
+	}
 }
 
-// Log out function (ensures cookie is properly cleared)
+// Temporary logout function (will be replaced by backend logout)
 export function logoutUser() {
 	auth.set({
 		isAuthenticated: false,
