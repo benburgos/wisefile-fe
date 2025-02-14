@@ -1,40 +1,47 @@
 import { writable } from 'svelte/store';
+import { browser } from '$app/environment';
 
-// Check if running in the browser before accessing sessionStorage
-const isBrowser = typeof window !== 'undefined';
-
-// Function to safely get stored auth state
 function getStoredAuth() {
-	if (isBrowser) {
-		let stored = sessionStorage.getItem('auth');
-		return stored
-			? JSON.parse(stored)
-			: { isAuthenticated: false, user: null, role: null, token: null };
+	if (!browser) return { isAuthenticated: false, user: null, role: null, token: null };
+
+	const stored = document.cookie.split('; ').find((row) => row.startsWith('auth='));
+	if (stored) {
+		try {
+			return JSON.parse(decodeURIComponent(stored.split('=')[1]));
+		} catch (e) {
+			console.error('Failed to parse auth cookie:', e);
+		}
 	}
+
 	return { isAuthenticated: false, user: null, role: null, token: null };
 }
 
-// Create writable store with initial auth state
 export const auth = writable(getStoredAuth());
 
-// Update sessionStorage when auth state changes (only in browser)
-if (isBrowser) {
+function updateAuthCookie(value) {
+	document.cookie = `auth=${encodeURIComponent(JSON.stringify(value))}; path=/; Secure; SameSite=Strict`;
+}
+
+// Sync store with cookies
+if (browser) {
 	auth.subscribe((value) => {
-		sessionStorage.setItem('auth', JSON.stringify(value));
+		updateAuthCookie(value);
 	});
 }
 
-// Helper function to log in
+// Log in function
 export function loginUser(userData) {
-	auth.set({
+	const authData = {
 		isAuthenticated: true,
 		user: userData,
 		role: userData.role,
 		token: userData.token
-	});
+	};
+	auth.set(authData);
+	if (browser) updateAuthCookie(authData);
 }
 
-// Helper function to log out
+// Log out function
 export function logoutUser() {
 	auth.set({
 		isAuthenticated: false,
@@ -42,5 +49,8 @@ export function logoutUser() {
 		role: null,
 		token: null
 	});
-	if (isBrowser) sessionStorage.removeItem('auth');
+
+	if (browser) {
+		document.cookie = `auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=Strict`;
+	}
 }
