@@ -4,7 +4,7 @@
 
 	let files = [
 		{
-			id: 'e6ad67e2-6f2d-4bfc-bd48-68d8c7f9e3a1',
+			id: 'f1a2b3c4-d5e6-7890-a1b2-c3d4e5f67890',
 			fileName: 'ABC123-001',
 			fileType: 'Filing',
 			status: 'Open',
@@ -18,32 +18,32 @@
 			clientId: 'ABC123'
 		},
 		{
-			id: 'f45a86e7-1e5b-4032-b546-22a1e9a1d8b2',
-			fileName: 'XYZ789-002',
-			fileType: 'Case',
-			status: 'Pending',
-			subStatus: 'Court Filing Submitted',
-			address: '456 Elm St',
-			tenant: 'Emily White',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
-			attorneyName: 'Robert Brown',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
-			assignedTo: 'Sarah Davis',
-			clientId: 'XYZ789'
-		},
-		{
-			id: 'd21a34bc-00c8-4bff-b345-6fae2b20c791',
-			fileName: 'ABC123-003',
+			id: 'm3n4o5p6-q7r8-9012-c3d4-e5f678901234',
+			fileName: 'DEF456-003',
 			fileType: 'Filing',
 			status: 'Closed',
 			subStatus: 'Resolved - Paid',
 			address: '789 Oak St',
 			tenant: 'David Green',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440004',
 			attorneyName: 'Lisa Wilson',
 			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
 			assignedTo: 'Tom Martinez',
 			clientId: 'ABC123'
+		},
+		{
+			id: 'p6q7r8s9-t0u1-2345-d4e5-f67890123456',
+			fileName: 'LMN456-004',
+			fileType: 'Case',
+			status: 'Open',
+			subStatus: 'Filed with Court',
+			address: '987 Pine St',
+			tenant: 'Sarah Johnson',
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440005',
+			attorneyName: 'James Anderson',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
+			assignedTo: 'Emily Watson',
+			clientId: 'XYZ789'
 		}
 	];
 
@@ -52,32 +52,26 @@
 	let userClientId = null;
 	let userAttorneyUUID = null;
 
-	// Subscribe to auth store
 	auth.subscribe(({ role, uuid, clientId }) => {
 		userRole = role;
-		userClientId = clientId || null; // For Client users
-		userAttorneyUUID = uuid || null; // Used for attorney filtering
+		userClientId = clientId || null;
+		userAttorneyUUID = uuid || null;
 	});
 
-	// Function to filter cases based on user role and additional filters
 	function filterFiles() {
 		filteredFiles = files.filter((file) => {
-			// Role-Based Visibility:
 			if (userRole === 'client' && file.clientId !== userClientId) return false;
 			if (userRole === 'lawyer' && file.attorney_uuid !== userAttorneyUUID) return false;
-
 			return true;
 		});
 	}
 </script>
 
 <section class="p-6">
-	<!-- Header Section -->
 	<div class="mb-6 flex items-center justify-between">
 		<h1 class="text-3xl font-bold">Cases</h1>
 
-		<!-- New Filing or Case Button (Visible only to Ops & Admins) -->
-		{#if userRole === 'admin' || userRole === 'ops'}
+		{#if userRole !== 'lawyer'}
 			<button
 				on:click={() => (showNewCaseModal = true)}
 				class="rounded bg-blue-500 px-6 py-3 font-bold text-white shadow-md hover:bg-blue-600"

@@ -18,14 +18,37 @@
 
 	function switchRole() {
 		const userData = roles[selectedRole];
+
+		// Debug: Log userData before updating auth store
+		console.log(`🔍 Switching role to:`, userData);
+
+		// Update auth store
 		auth.set({ ...userData, isAuthenticated: true });
+
+		// Debug: Log auth state after updating
+		auth.subscribe((value) => console.log(`✅ Auth Store Updated:`, value));
 
 		// Store role and user data in cookies for persistence
 		document.cookie = `userRole=${userData.role}; path=/`;
 		document.cookie = `userUUID=${userData.uuid}; path=/`;
+
 		if (userData.clientId) {
 			document.cookie = `clientId=${userData.clientId}; path=/`;
+		} else {
+			document.cookie = `clientId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`; // Clear clientId if not needed
 		}
+
+		// Debug: Log updated cookies
+		console.log(`✅ Cookies Updated:`);
+		console.log(
+			`📝 userRole=${document.cookie.split('; ').find((row) => row.startsWith('userRole'))}`
+		);
+		console.log(
+			`📝 userUUID=${document.cookie.split('; ').find((row) => row.startsWith('userUUID'))}`
+		);
+		console.log(
+			`📝 clientId=${document.cookie.split('; ').find((row) => row.startsWith('clientId'))}`
+		);
 	}
 </script>
 
