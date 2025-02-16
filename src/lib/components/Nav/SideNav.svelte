@@ -6,9 +6,11 @@
 	let isAuthenticated = false;
 	let userRole = null;
 
-	auth.subscribe(({ isAuthenticated: authStatus, role }) => {
+	// Subscribe to auth store
+	auth.subscribe(({ isAuthenticated: authStatus, user }) => {
 		isAuthenticated = authStatus;
-		userRole = role;
+		userRole = user?.role || null;
+		console.log('User Role in SideNav:', userRole);
 	});
 
 	// Navigation links based on roles
@@ -40,20 +42,24 @@
 
 <nav class="flex h-full flex-col bg-gray-800 p-4 text-white">
 	<ul class="flex-grow space-y-2">
-		{#each navLinks[userRole] as link}
-			<li>
-				<a
-					href={link.path}
-					class="block rounded px-4 py-2 transition-all"
-					class:active={$page.url.pathname === link.path}
-					class:bg-gray-700={$page.url.pathname === link.path}
-					class:font-bold={$page.url.pathname === link.path}
-					class:text-primary={$page.url.pathname === link.path}
-				>
-					{link.name}
-				</a>
-			</li>
-		{/each}
+		{#if userRole && navLinks[userRole]}
+			{#each navLinks[userRole] as link}
+				<li>
+					<a
+						href={link.path}
+						class="block rounded px-4 py-2 transition-all"
+						class:active={$page.url.pathname === link.path}
+						class:bg-gray-700={$page.url.pathname === link.path}
+						class:font-bold={$page.url.pathname === link.path}
+						class:text-primary={$page.url.pathname === link.path}
+					>
+						{link.name}
+					</a>
+				</li>
+			{/each}
+		{:else}
+			<li class="text-sm italic text-gray-400">No links available</li>
+		{/if}
 	</ul>
 
 	<!-- Importing RoleSwitcher instead of inline logic -->
