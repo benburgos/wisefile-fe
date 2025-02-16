@@ -2,6 +2,7 @@
 	import { auth } from '$lib/stores/auth';
 	import { onMount } from 'svelte';
 
+	// Fake Cases Data
 	let files = [
 		{
 			id: 'f1a2b3c4-d5e6-7890-a1b2-c3d4e5f67890',
@@ -52,25 +53,77 @@
 	let userClientId = null;
 	let userAttorneyUUID = null;
 
+	let selectedStatus = 'all';
+	let selectedSubStatus = 'all';
+	let selectedAttorney = 'all';
+	let selectedAssignee = 'all';
+	let searchQuery = '';
+
+	// Subscribe to auth store & trigger filtering when it updates
 	auth.subscribe(({ role, uuid, clientId }) => {
 		userRole = role;
 		userClientId = clientId || null;
 		userAttorneyUUID = uuid || null;
+
+		console.log(
+			'🔄 Updated Role:',
+			userRole,
+			'Client ID:',
+			userClientId,
+			'Attorney UUID:',
+			userAttorneyUUID
+		);
+		filterFiles();
 	});
 
+	// Filtering logic
 	function filterFiles() {
+		console.log('🔍 Filtering cases for:', { userRole, userClientId, userAttorneyUUID });
+
 		filteredFiles = files.filter((file) => {
-			if (userRole === 'client' && file.clientId !== userClientId) return false;
-			if (userRole === 'lawyer' && file.attorney_uuid !== userAttorneyUUID) return false;
-			return true;
+			// Role-based filtering
+			if (userRole === 'client' && file.clientId !== userClientId) {
+				console.log(`❌ Hiding file ${file.fileName} - Client Mismatch`);
+				return false;
+			}
+			if (userRole === 'lawyer' && file.attorney_uuid !== userAttorneyUUID) {
+				console.log(`❌ Hiding file ${file.fileName} - Attorney Mismatch`);
+				return false;
+			}
+
+			// Dropdown filters
+			const statusMatch = selectedStatus === 'all' || file.status.toLowerCase() === selectedStatus;
+			const subStatusMatch =
+				selectedSubStatus === 'all' || file.subStatus.toLowerCase() === selectedSubStatus;
+			const attorneyMatch = selectedAttorney === 'all' || file.attorney_uuid === selectedAttorney;
+			const assigneeMatch = selectedAssignee === 'all' || file.ops_uuid === selectedAssignee;
+
+			// Search filter (Matches file number, address, or tenant)
+			const searchMatch =
+				searchQuery === '' ||
+				file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				file.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				file.tenant.toLowerCase().includes(searchQuery.toLowerCase());
+
+			return statusMatch && subStatusMatch && attorneyMatch && assigneeMatch && searchMatch;
 		});
+
+		console.log('✅ Filtered Files:', filteredFiles);
 	}
+
+	// Ensure filtering runs when the page loads
+	onMount(() => {
+		console.log('✅ Cases page loaded, triggering initial filter');
+		filterFiles();
+	});
 </script>
 
 <section class="p-6">
+	<!-- Header Section -->
 	<div class="mb-6 flex items-center justify-between">
 		<h1 class="text-3xl font-bold">Cases</h1>
 
+		<!-- New Filing or Case Button (Only Clients, Ops, and Admins) -->
 		{#if userRole !== 'lawyer'}
 			<button
 				on:click={() => (showNewCaseModal = true)}

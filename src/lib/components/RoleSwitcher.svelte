@@ -4,44 +4,31 @@
 	let roles = ['admin', 'ops', 'lawyer', 'client'];
 	let selectedRole = 'client';
 
-	function switchRole() {
-		console.log('Switching role to:', selectedRole);
+	function changeRole() {
+		console.log('🔄 Switching role to:', selectedRole);
 
-		// Update auth state
-		let newAuthState;
-		auth.update((current) => {
-			newAuthState = {
-				...current,
-				user: { ...current.user, role: selectedRole },
-				clientId: selectedRole === 'client' ? 'ABC123' : null,
-				uuid: selectedRole === 'lawyer' ? '550e8400-e29b-41d4-a716-446655440002' : current.uuid
-			};
-			return newAuthState;
-		});
+		const updatedAuth = {
+			isAuthenticated: true,
+			user: { name: `Test ${selectedRole}` },
+			role: selectedRole,
+			clientId: selectedRole === 'client' ? 'ABC123' : null,
+			uuid: selectedRole === 'lawyer' ? '550e8400-e29b-41d4-a716-446655440002' : 'default-uuid',
+			token: 'test-token'
+		};
 
-		// Debug log for new state
-		console.log('New Auth State:', newAuthState);
-
-		// Update the `auth` cookie (with proper encoding)
-		document.cookie = `auth=${encodeURIComponent(JSON.stringify(newAuthState))}; path=/; Secure; SameSite=Strict`;
-
-		// Debug log for updated cookie
-		console.log('Updated Cookie:', document.cookie);
-
-		// Force reload to apply changes
-		window.location.reload();
+		auth.set(updatedAuth);
 	}
 </script>
 
 <div class="rounded bg-gray-500 p-4">
-	<label for="role-select" class="mb-2 block font-semibold">Switch Role:</label>
-	<select id="role-select" bind:value={selectedRole} class="text-black rounded border p-2">
+	<label for="role-select" class="mb-2 block font-semibold text-white">Switch Role:</label>
+	<select id="role-select" bind:value={selectedRole} class="rounded border p-2 text-black">
 		{#each roles as role}
 			<option value={role}>{role}</option>
 		{/each}
 	</select>
 	<button
-		on:click={switchRole}
+		on:click={changeRole}
 		class="ml-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-700"
 	>
 		Set Role
