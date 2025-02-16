@@ -1,6 +1,7 @@
 <script>
 	import { auth, logoutUser } from '$lib/stores/auth';
 	import { page } from '$app/stores';
+	import RoleSwitcher from '$lib/components/RoleSwitcher.svelte';
 
 	let isAuthenticated = false;
 	let userRole = null;
@@ -55,21 +56,8 @@
 		{/each}
 	</ul>
 
-	<!-- Role Switcher -->
-	<div class="mt-4 rounded bg-gray-700 p-4">
-		<label for="role-select" class="mb-2 block font-semibold text-white">Switch Role:</label>
-		<select id="role-select" bind:value={userRole} class="w-full rounded border p-2 text-black">
-			{#each Object.keys(navLinks) as role}
-				<option value={role} class="text-black">{role}</option>
-			{/each}
-		</select>
-		<button
-			on:click={() => auth.set({ isAuthenticated: true, role: userRole })}
-			class="mt-2 w-full rounded bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-700"
-		>
-			Set Role
-		</button>
-	</div>
+	<!-- Importing RoleSwitcher instead of inline logic -->
+	<RoleSwitcher />
 
 	<!-- Logout Button -->
 	<div class="mt-4 rounded bg-gray-700 p-4">
