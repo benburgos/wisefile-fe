@@ -2,17 +2,8 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 function getStoredAuth() {
-	if (!browser)
-		return {
-			isAuthenticated: false,
-			user: null,
-			role: 'admin',
-			token: null,
-			uuid: null,
-			clientId: null
-		};
+	if (!browser) return { isAuthenticated: false, user: null, role: null, token: null };
 
-	// Retrieve authentication state from cookies
 	const stored = document.cookie.split('; ').find((row) => row.startsWith('auth='));
 	if (stored) {
 		try {
@@ -22,61 +13,40 @@ function getStoredAuth() {
 		}
 	}
 
-	// Default role is admin if no valid authentication is found
-	return {
-		isAuthenticated: false,
-		user: null,
-		role: 'admin',
-		token: null,
-		uuid: null,
-		clientId: null
-	};
+	return { isAuthenticated: false, user: null, role: null, token: null };
 }
 
-// Create the writable store with default values
 export const auth = writable(getStoredAuth());
 
-// Sync store with cookies on changes
+// Sync store with cookies when they change
 if (browser) {
 	document.addEventListener('cookiechange', () => {
 		auth.set(getStoredAuth());
 	});
 }
 
-// Temporary login function (will be replaced by backend authentication)
+// Temporary login function
 export function loginUser(userData) {
 	const authData = {
 		isAuthenticated: true,
-		user: userData,
-		role: userData.role || 'admin', // Default to admin if no role provided
+		user: { email: userData.email, role: userData.role }, // ✅ Store role inside user
 		token: 'fake-token',
-		uuid: userData.uuid || '550e8400-e29b-41d4-a716-446655440000', // Default admin UUID
-		clientId: userData.clientId || null
+		uuid: userData.uuid,
+		clientId: userData.clientId
 	};
 
 	auth.set(authData);
 
 	if (browser) {
 		document.cookie = `auth=${encodeURIComponent(JSON.stringify(authData))}; path=/; Secure; SameSite=Strict`;
-		console.log(
-			`User logged in: Role=${authData.role}, UUID=${authData.uuid}, ClientID=${authData.clientId || 'N/A'}`
-		);
 	}
 }
 
-// Temporary logout function (will be replaced by backend logout)
+// Temporary logout function
 export function logoutUser() {
-	auth.set({
-		isAuthenticated: false,
-		user: null,
-		role: 'admin',
-		token: null,
-		uuid: null,
-		clientId: null
-	});
+	auth.set({ isAuthenticated: false, user: null, role: null, token: null });
 
 	if (browser) {
 		document.cookie = `auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=Strict`;
-		console.log('User logged out, cookies cleared.');
 	}
 }
