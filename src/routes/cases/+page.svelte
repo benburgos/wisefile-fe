@@ -3,8 +3,8 @@
 
 	let files = [
 		{
-			id: 1,
-			name: 'Filing #1001',
+			id: 1001,
+			fileType: 'Filing',
 			status: 'Open',
 			subStatus: 'Awaiting Payment',
 			address: '123 Main St',
@@ -13,8 +13,8 @@
 			assignedTo: 'Michael Johnson'
 		},
 		{
-			id: 2,
-			name: 'Case #1002',
+			id: 1002,
+			fileType: 'Case',
 			status: 'Pending',
 			subStatus: 'Court Filing Submitted',
 			address: '456 Elm St',
@@ -23,8 +23,8 @@
 			assignedTo: 'Sarah Davis'
 		},
 		{
-			id: 3,
-			name: 'Filing #1003',
+			id: 1003,
+			fileType: 'Filing',
 			status: 'Closed',
 			subStatus: 'Resolved - Paid',
 			address: '789 Oak St',
@@ -35,6 +35,7 @@
 	];
 
 	let filteredFiles = [...files]; // Default to showing all cases
+	let selectedFileType = 'all';
 	let selectedStatus = 'all';
 	let selectedSubStatus = 'all';
 	let selectedAttorney = 'all';
@@ -44,6 +45,8 @@
 	// Function to filter files based on multiple criteria
 	function filterFiles() {
 		filteredFiles = files.filter((file) => {
+			const fileTypeMatch =
+				selectedFileType === 'all' || file.fileType.toLowerCase() === selectedFileType;
 			const statusMatch = selectedStatus === 'all' || file.status.toLowerCase() === selectedStatus;
 			const subStatusMatch =
 				selectedSubStatus === 'all' || file.subStatus.toLowerCase() === selectedSubStatus;
@@ -53,9 +56,16 @@
 				searchQuery === '' ||
 				file.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				file.tenant.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				file.name.toLowerCase().includes(searchQuery.toLowerCase());
+				file.id.toString().includes(searchQuery.toLowerCase());
 
-			return statusMatch && subStatusMatch && attorneyMatch && assigneeMatch && searchMatch;
+			return (
+				fileTypeMatch &&
+				statusMatch &&
+				subStatusMatch &&
+				attorneyMatch &&
+				assigneeMatch &&
+				searchMatch
+			);
 		});
 	}
 
@@ -77,7 +87,22 @@
 	</div>
 
 	<!-- Filter Bar -->
-	<div class="mb-4 grid grid-cols-5 gap-4">
+	<div class="mb-4 grid grid-cols-6 gap-4">
+		<!-- File Type Filter -->
+		<div>
+			<label for="file-type-filter" class="text-lg font-semibold">File Type:</label>
+			<select
+				id="file-type-filter"
+				bind:value={selectedFileType}
+				on:change={filterFiles}
+				class="w-full rounded border px-3 py-2 text-black"
+			>
+				<option value="all">All</option>
+				<option value="filing">Filing</option>
+				<option value="case">Case</option>
+			</select>
+		</div>
+
 		<!-- Status Filter -->
 		<div>
 			<label for="status-filter" class="text-lg font-semibold">Status:</label>
@@ -150,7 +175,7 @@
 				id="search-filter"
 				bind:value={searchQuery}
 				on:input={filterFiles}
-				placeholder="Search by address, tenant, case number..."
+				placeholder="Search by file number, address, tenant..."
 				class="w-full rounded border px-3 py-2 text-black"
 			/>
 		</div>
@@ -161,7 +186,8 @@
 		<table class="w-full border-collapse">
 			<thead class="bg-gray-200">
 				<tr>
-					<th class="p-3 text-left">File</th>
+					<th class="p-3 text-left">File #</th>
+					<th class="p-3 text-left">File Type</th>
 					<th class="p-3 text-left">Status</th>
 					<th class="p-3 text-left">Sub-Status</th>
 					<th class="p-3 text-left">Address</th>
@@ -176,7 +202,8 @@
 						class="cursor-pointer border-t hover:bg-gray-100"
 						on:click={() => (window.location.href = `/cases/${file.id}`)}
 					>
-						<td class="p-3 text-blue-500 underline">{file.name}</td>
+						<td class="p-3 text-blue-500 underline">{file.id}</td>
+						<td class="p-3">{file.fileType}</td>
 						<td class="p-3">{file.status}</td>
 						<td class="p-3">{file.subStatus}</td>
 						<td class="p-3">{file.address}</td>
