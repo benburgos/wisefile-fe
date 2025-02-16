@@ -6,11 +6,11 @@
 	let isAuthenticated = false;
 	let userRole = null;
 
-	// Subscribe to auth store
-	auth.subscribe(({ isAuthenticated: authStatus, user }) => {
+	// Subscribe to auth store and ensure userRole updates correctly
+	auth.subscribe(({ isAuthenticated: authStatus, role }) => {
 		isAuthenticated = authStatus;
-		userRole = user?.role || null;
-		console.log('User Role in SideNav:', userRole);
+		userRole = role || null;
+		console.log('✅ User Role in SideNav:', userRole);
 	});
 
 	// Navigation links based on roles
@@ -42,7 +42,7 @@
 
 <nav class="flex h-full flex-col bg-gray-800 p-4 text-white">
 	<ul class="flex-grow space-y-2">
-		{#if userRole && navLinks[userRole]}
+		{#if userRole && navLinks[userRole]?.length}
 			{#each navLinks[userRole] as link}
 				<li>
 					<a
