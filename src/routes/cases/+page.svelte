@@ -1,22 +1,62 @@
 <script>
 	import { onMount } from 'svelte';
 
-	let cases = [
-		{ id: 1, name: 'Case #12345', status: 'Open', assignedTo: 'John Doe' },
-		{ id: 2, name: 'Case #12346', status: 'Pending', assignedTo: 'Jane Smith' },
-		{ id: 3, name: 'Case #12347', status: 'Closed', assignedTo: 'Mark Johnson' }
+	let files = [
+		{
+			id: 1,
+			name: 'Filing #1001',
+			status: 'Open',
+			subStatus: 'Awaiting Payment',
+			address: '123 Main St',
+			tenant: 'John Doe',
+			attorney: 'Jane Smith',
+			assignedTo: 'Michael Johnson'
+		},
+		{
+			id: 2,
+			name: 'Case #1002',
+			status: 'Pending',
+			subStatus: 'Court Filing Submitted',
+			address: '456 Elm St',
+			tenant: 'Emily White',
+			attorney: 'Robert Brown',
+			assignedTo: 'Sarah Davis'
+		},
+		{
+			id: 3,
+			name: 'Filing #1003',
+			status: 'Closed',
+			subStatus: 'Resolved - Paid',
+			address: '789 Oak St',
+			tenant: 'David Green',
+			attorney: 'Lisa Wilson',
+			assignedTo: 'Tom Martinez'
+		}
 	];
 
-	let filteredCases = [...cases]; // Default to showing all cases
+	let filteredFiles = [...files]; // Default to showing all cases
 	let selectedStatus = 'all';
+	let selectedSubStatus = 'all';
+	let selectedAttorney = 'all';
+	let selectedAssignee = 'all';
+	let searchQuery = '';
 
-	// Function to filter cases based on status
-	function filterCases() {
-		if (selectedStatus === 'all') {
-			filteredCases = [...cases];
-		} else {
-			filteredCases = cases.filter((c) => c.status.toLowerCase() === selectedStatus);
-		}
+	// Function to filter files based on multiple criteria
+	function filterFiles() {
+		filteredFiles = files.filter((file) => {
+			const statusMatch = selectedStatus === 'all' || file.status.toLowerCase() === selectedStatus;
+			const subStatusMatch =
+				selectedSubStatus === 'all' || file.subStatus.toLowerCase() === selectedSubStatus;
+			const attorneyMatch = selectedAttorney === 'all' || file.attorney === selectedAttorney;
+			const assigneeMatch = selectedAssignee === 'all' || file.assignedTo === selectedAssignee;
+			const searchMatch =
+				searchQuery === '' ||
+				file.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				file.tenant.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				file.name.toLowerCase().includes(searchQuery.toLowerCase());
+
+			return statusMatch && subStatusMatch && attorneyMatch && assigneeMatch && searchMatch;
+		});
 	}
 
 	let showNewCaseModal = false;
@@ -24,61 +64,128 @@
 
 <section class="p-6">
 	<!-- Header Section -->
-	<div class="flex items-center justify-between mb-6">
+	<div class="mb-6 flex items-center justify-between">
 		<h1 class="text-3xl font-bold">Cases</h1>
 
-		<!-- New Case Button -->
-		<button 
-			on:click={() => showNewCaseModal = true} 
-			class="rounded bg-blue-500 px-6 py-3 text-white font-bold shadow-md hover:bg-blue-600">
-			New Case
+		<!-- New Filing or Case Button -->
+		<button
+			on:click={() => (showNewCaseModal = true)}
+			class="rounded bg-blue-500 px-6 py-3 font-bold text-white shadow-md hover:bg-blue-600"
+		>
+			New Filing or Case
 		</button>
 	</div>
 
-	<!-- Filter Dropdown -->
-	<div class="mb-4">
-		<label for="status-filter" class="text-lg font-semibold">Filter by Status:</label>
-		<select id="status-filter" bind:value={selectedStatus} on:change={filterCases}
-			class="ml-2 rounded border px-3 py-2 text-black">
-			<option value="all">All</option>
-			<option value="open">Open</option>
-			<option value="pending">Pending</option>
-			<option value="closed">Closed</option>
-		</select>
+	<!-- Filter Bar -->
+	<div class="mb-4 grid grid-cols-5 gap-4">
+		<!-- Status Filter -->
+		<div>
+			<label for="status-filter" class="text-lg font-semibold">Status:</label>
+			<select
+				id="status-filter"
+				bind:value={selectedStatus}
+				on:change={filterFiles}
+				class="w-full rounded border px-3 py-2 text-black"
+			>
+				<option value="all">All</option>
+				<option value="open">Open</option>
+				<option value="pending">Pending</option>
+				<option value="closed">Closed</option>
+			</select>
+		</div>
+
+		<!-- Sub-Status Filter -->
+		<div>
+			<label for="substatus-filter" class="text-lg font-semibold">Sub-Status:</label>
+			<select
+				id="substatus-filter"
+				bind:value={selectedSubStatus}
+				on:change={filterFiles}
+				class="w-full rounded border px-3 py-2 text-black"
+			>
+				<option value="all">All</option>
+				<option value="awaiting payment">Awaiting Payment</option>
+				<option value="court filing submitted">Court Filing Submitted</option>
+				<option value="resolved - paid">Resolved - Paid</option>
+			</select>
+		</div>
+
+		<!-- Attorney Filter -->
+		<div>
+			<label for="attorney-filter" class="text-lg font-semibold">Attorney:</label>
+			<select
+				id="attorney-filter"
+				bind:value={selectedAttorney}
+				on:change={filterFiles}
+				class="w-full rounded border px-3 py-2 text-black"
+			>
+				<option value="all">All</option>
+				{#each [...new Set(files.map((f) => f.attorney))] as attorney}
+					<option value={attorney}>{attorney}</option>
+				{/each}
+			</select>
+		</div>
+
+		<!-- Assignee Filter -->
+		<div>
+			<label for="assignee-filter" class="text-lg font-semibold">Assignee:</label>
+			<select
+				id="assignee-filter"
+				bind:value={selectedAssignee}
+				on:change={filterFiles}
+				class="w-full rounded border px-3 py-2 text-black"
+			>
+				<option value="all">All</option>
+				{#each [...new Set(files.map((f) => f.assignedTo))] as assignee}
+					<option value={assignee}>{assignee}</option>
+				{/each}
+			</select>
+		</div>
+
+		<!-- Search Filter -->
+		<div>
+			<label for="search-filter" class="text-lg font-semibold">Search:</label>
+			<input
+				type="text"
+				id="search-filter"
+				bind:value={searchQuery}
+				on:input={filterFiles}
+				placeholder="Search by address, tenant, case number..."
+				class="w-full rounded border px-3 py-2 text-black"
+			/>
+		</div>
 	</div>
 
 	<!-- Cases Table -->
-	<div class="overflow-x-auto bg-white shadow-md rounded">
+	<div class="overflow-x-auto rounded bg-white shadow-md">
 		<table class="w-full border-collapse">
 			<thead class="bg-gray-200">
 				<tr>
-					<th class="p-3 text-left">Case Name</th>
+					<th class="p-3 text-left">File</th>
 					<th class="p-3 text-left">Status</th>
-					<th class="p-3 text-left">Assigned To</th>
+					<th class="p-3 text-left">Sub-Status</th>
+					<th class="p-3 text-left">Address</th>
+					<th class="p-3 text-left">Tenant</th>
+					<th class="p-3 text-left">Attorney</th>
+					<th class="p-3 text-left">Assignee</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each filteredCases as file}
-					<tr class="border-t hover:bg-gray-100 cursor-pointer">
-						<td class="p-3">{file.name}</td>
+				{#each filteredFiles as file}
+					<tr
+						class="cursor-pointer border-t hover:bg-gray-100"
+						on:click={() => (window.location.href = `/cases/${file.id}`)}
+					>
+						<td class="p-3 text-blue-500 underline">{file.name}</td>
 						<td class="p-3">{file.status}</td>
+						<td class="p-3">{file.subStatus}</td>
+						<td class="p-3">{file.address}</td>
+						<td class="p-3">{file.tenant}</td>
+						<td class="p-3">{file.attorney}</td>
 						<td class="p-3">{file.assignedTo}</td>
 					</tr>
 				{/each}
 			</tbody>
 		</table>
 	</div>
-
-	<!-- New Case Modal -->
-	{#if showNewCaseModal}
-		<div class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
-			<div class="rounded bg-white p-6 shadow-lg w-96">
-				<h2 class="mb-4 text-xl font-bold">Create New Case</h2>
-				<p>Case creation form will go here...</p>
-				<button on:click={() => showNewCaseModal = false} class="mt-4 rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600">
-					Close
-				</button>
-			</div>
-		</div>
-	{/if}
 </section>
