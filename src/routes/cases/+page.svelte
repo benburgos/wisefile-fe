@@ -4,92 +4,71 @@
 
 	let files = [
 		{
-			id: 1001,
-			clientId: 'ABC123',
+			id: 'e6ad67e2-6f2d-4bfc-bd48-68d8c7f9e3a1',
+			fileName: 'ABC123-001',
 			fileType: 'Filing',
 			status: 'Open',
 			subStatus: 'Awaiting Payment',
 			address: '123 Main St',
 			tenant: 'John Doe',
-			attorney: 'Jane Smith',
-			assignedTo: 'Michael Johnson'
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
+			attorneyName: 'Jane Smith',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
+			assignedTo: 'Michael Johnson',
+			clientId: 'ABC123'
 		},
 		{
-			id: 1002,
-			clientId: 'XYZ789',
+			id: 'f45a86e7-1e5b-4032-b546-22a1e9a1d8b2',
+			fileName: 'XYZ789-002',
 			fileType: 'Case',
 			status: 'Pending',
 			subStatus: 'Court Filing Submitted',
 			address: '456 Elm St',
 			tenant: 'Emily White',
-			attorney: 'Robert Brown',
-			assignedTo: 'Sarah Davis'
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
+			attorneyName: 'Robert Brown',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
+			assignedTo: 'Sarah Davis',
+			clientId: 'XYZ789'
 		},
 		{
-			id: 1003,
-			clientId: 'ABC123',
+			id: 'd21a34bc-00c8-4bff-b345-6fae2b20c791',
+			fileName: 'ABC123-003',
 			fileType: 'Filing',
 			status: 'Closed',
 			subStatus: 'Resolved - Paid',
 			address: '789 Oak St',
 			tenant: 'David Green',
-			attorney: 'Lisa Wilson',
-			assignedTo: 'Tom Martinez'
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
+			attorneyName: 'Lisa Wilson',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
+			assignedTo: 'Tom Martinez',
+			clientId: 'ABC123'
 		}
 	];
 
-	let filteredFiles = [...files]; // Default to showing all cases
-	let selectedFileType = 'all';
-	let selectedStatus = 'all';
-	let selectedSubStatus = 'all';
-	let selectedAttorney = 'all';
-	let selectedAssignee = 'all';
-	let searchQuery = '';
-
+	let filteredFiles = [...files];
 	let userRole = null;
 	let userClientId = null;
-	let userAttorneyName = null;
+	let userAttorneyUUID = null;
 
 	// Subscribe to auth store
-	auth.subscribe(({ role, user }) => {
+	auth.subscribe(({ role, uuid, clientId }) => {
 		userRole = role;
-		userClientId = user?.clientId || null; // Only relevant for Client users
-		userAttorneyName = user?.name || null; // Used for attorney filtering
+		userClientId = clientId || null; // For Client users
+		userAttorneyUUID = uuid || null; // Used for attorney filtering
 	});
 
-	// Function to filter files based on multiple criteria, including role-based restrictions
+	// Function to filter cases based on user role and additional filters
 	function filterFiles() {
 		filteredFiles = files.filter((file) => {
 			// Role-Based Visibility:
-			if (userRole === 'client' && file.clientId !== userClientId) return false; // Client restriction
-			if (userRole === 'lawyer' && file.attorney !== userAttorneyName) return false; // Attorney restriction
+			if (userRole === 'client' && file.clientId !== userClientId) return false;
+			if (userRole === 'lawyer' && file.attorney_uuid !== userAttorneyUUID) return false;
 
-			// Standard Filters:
-			const fileTypeMatch =
-				selectedFileType === 'all' || file.fileType.toLowerCase() === selectedFileType;
-			const statusMatch = selectedStatus === 'all' || file.status.toLowerCase() === selectedStatus;
-			const subStatusMatch =
-				selectedSubStatus === 'all' || file.subStatus.toLowerCase() === selectedSubStatus;
-			const attorneyMatch = selectedAttorney === 'all' || file.attorney === selectedAttorney;
-			const assigneeMatch = selectedAssignee === 'all' || file.assignedTo === selectedAssignee;
-			const searchMatch =
-				searchQuery === '' ||
-				file.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				file.tenant.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				file.id.toString().includes(searchQuery.toLowerCase());
-
-			return (
-				fileTypeMatch &&
-				statusMatch &&
-				subStatusMatch &&
-				attorneyMatch &&
-				assigneeMatch &&
-				searchMatch
-			);
+			return true;
 		});
 	}
-
-	let showNewCaseModal = false;
 </script>
 
 <section class="p-6">
@@ -106,53 +85,6 @@
 				New Filing or Case
 			</button>
 		{/if}
-	</div>
-
-	<!-- Filter Bar -->
-	<div class="mb-4 grid grid-cols-6 gap-4">
-		<!-- File Type Filter -->
-		<div>
-			<label for="file-type-filter" class="text-lg font-semibold">File Type:</label>
-			<select
-				id="file-type-filter"
-				bind:value={selectedFileType}
-				on:change={filterFiles}
-				class="w-full rounded border px-3 py-2 text-black"
-			>
-				<option value="all">All</option>
-				<option value="filing">Filing</option>
-				<option value="case">Case</option>
-			</select>
-		</div>
-
-		<!-- Status Filter -->
-		<div>
-			<label for="status-filter" class="text-lg font-semibold">Status:</label>
-			<select
-				id="status-filter"
-				bind:value={selectedStatus}
-				on:change={filterFiles}
-				class="w-full rounded border px-3 py-2 text-black"
-			>
-				<option value="all">All</option>
-				<option value="open">Open</option>
-				<option value="pending">Pending</option>
-				<option value="closed">Closed</option>
-			</select>
-		</div>
-
-		<!-- Search Filter -->
-		<div>
-			<label for="search-filter" class="text-lg font-semibold">Search:</label>
-			<input
-				type="text"
-				id="search-filter"
-				bind:value={searchQuery}
-				on:input={filterFiles}
-				placeholder="Search by file number, address, tenant..."
-				class="w-full rounded border px-3 py-2 text-black"
-			/>
-		</div>
 	</div>
 
 	<!-- Cases Table -->
@@ -176,13 +108,13 @@
 						class="cursor-pointer border-t hover:bg-gray-100"
 						on:click={() => (window.location.href = `/cases/${file.id}`)}
 					>
-						<td class="p-3 text-blue-500 underline">{file.id}</td>
+						<td class="p-3 text-blue-500 underline">{file.fileName}</td>
 						<td class="p-3">{file.fileType}</td>
 						<td class="p-3">{file.status}</td>
 						<td class="p-3">{file.subStatus}</td>
 						<td class="p-3">{file.address}</td>
 						<td class="p-3">{file.tenant}</td>
-						<td class="p-3">{file.attorney}</td>
+						<td class="p-3">{file.attorneyName}</td>
 						<td class="p-3">{file.assignedTo}</td>
 					</tr>
 				{/each}

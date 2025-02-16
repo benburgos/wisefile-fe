@@ -1,29 +1,44 @@
 <script>
 	import { auth } from '$lib/stores/auth';
 
-	let roles = ['admin', 'ops', 'lawyer', 'client'];
-	let selectedRole = 'client';
+	// Define roles with fake UUIDs for testing
+	const roles = {
+		admin: { role: 'admin', uuid: '550e8400-e29b-41d4-a716-446655440000', name: 'Admin User' },
+		ops: { role: 'ops', uuid: '550e8400-e29b-41d4-a716-446655440001', name: 'Ops User' },
+		lawyer: { role: 'lawyer', uuid: '550e8400-e29b-41d4-a716-446655440002', name: 'Jane Smith' },
+		client: {
+			role: 'client',
+			uuid: '550e8400-e29b-41d4-a716-446655440003',
+			clientId: 'ABC123',
+			name: 'Client User'
+		}
+	};
 
-	function changeRole() {
-		auth.set({
-			isAuthenticated: true,
-			user: { name: `Test ${selectedRole}` },
-			role: selectedRole,
-			token: 'test-token'
-		});
+	let selectedRole = 'client'; // Default role
+
+	function switchRole() {
+		const userData = roles[selectedRole];
+		auth.set({ ...userData, isAuthenticated: true });
+
+		// Store role and user data in cookies for persistence
+		document.cookie = `userRole=${userData.role}; path=/`;
+		document.cookie = `userUUID=${userData.uuid}; path=/`;
+		if (userData.clientId) {
+			document.cookie = `clientId=${userData.clientId}; path=/`;
+		}
 	}
 </script>
 
-<div class="rounded bg-gray-600 p-4">
+<div class="mt-4 rounded bg-gray-700 p-4">
 	<label for="role-select" class="mb-2 block font-semibold text-white">Switch Role:</label>
-	<select id="role-select" bind:value={selectedRole} class="rounded border bg-white p-2 text-black">
-		{#each roles as role}
+	<select id="role-select" bind:value={selectedRole} class="w-full rounded border p-2 text-black">
+		{#each Object.keys(roles) as role}
 			<option value={role} class="text-black">{role}</option>
 		{/each}
 	</select>
 	<button
-		on:click={changeRole}
-		class="ml-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-700"
+		on:click={switchRole}
+		class="mt-2 w-full rounded bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-700"
 	>
 		Set Role
 	</button>
