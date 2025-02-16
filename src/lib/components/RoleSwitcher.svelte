@@ -1,56 +1,48 @@
 <script>
 	import { auth } from '$lib/stores/auth';
 
-	// Define roles with fake UUIDs for testing
-	const roles = {
-		admin: { role: 'admin', uuid: '550e8400-e29b-41d4-a716-446655440000', name: 'Admin User' },
-		ops: { role: 'ops', uuid: '550e8400-e29b-41d4-a716-446655440001', name: 'Ops User' },
-		lawyer: { role: 'lawyer', uuid: '550e8400-e29b-41d4-a716-446655440002', name: 'Jane Smith' },
-		client: {
-			role: 'client',
-			uuid: '550e8400-e29b-41d4-a716-446655440003',
-			clientId: 'ABC123',
-			name: 'Client User'
-		}
-	};
-
-	let selectedRole = 'client'; // Default role
+	let roles = ['admin', 'ops', 'lawyer', 'client'];
+	let selectedRole = 'client';
 
 	function switchRole() {
-		const userData = roles[selectedRole];
+		console.log('Switching role to:', selectedRole);
 
-		// Debugging log
-		console.log(`🔍 Switching role to:`, userData);
+		// Update auth state
+		let newAuthState;
+		auth.update((current) => {
+			newAuthState = {
+				...current,
+				user: { ...current.user, role: selectedRole },
+				clientId: selectedRole === 'client' ? 'ABC123' : null,
+				uuid: selectedRole === 'lawyer' ? '550e8400-e29b-41d4-a716-446655440002' : current.uuid
+			};
+			return newAuthState;
+		});
 
-		// Update auth store
-		auth.set({ ...userData, isAuthenticated: true });
+		// Debug log for new state
+		console.log('New Auth State:', newAuthState);
 
-		// Store role and user data in cookies for persistence
-		document.cookie = `userRole=${userData.role}; path=/`;
-		document.cookie = `userUUID=${userData.uuid}; path=/`;
+		// Update the `auth` cookie (with proper encoding)
+		document.cookie = `auth=${encodeURIComponent(JSON.stringify(newAuthState))}; path=/; Secure; SameSite=Strict`;
 
-		if (userData.clientId) {
-			document.cookie = `clientId=${userData.clientId}; path=/`;
-		} else {
-			document.cookie = `clientId=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`; // Clear clientId if not needed
-		}
+		// Debug log for updated cookie
+		console.log('Updated Cookie:', document.cookie);
 
-		// Debugging: Ensure cookies update
-		console.log(`✅ Role switched to: ${userData.role}`);
-		console.log(`✅ Cookies Updated:`, document.cookie);
+		// Force reload to apply changes
+		window.location.reload();
 	}
 </script>
 
-<div class="mt-4 rounded bg-gray-700 p-4">
-	<label for="role-select" class="mb-2 block font-semibold text-white">Switch Role:</label>
-	<select id="role-select" bind:value={selectedRole} class="w-full rounded border p-2 text-black">
-		{#each Object.keys(roles) as role}
-			<option value={role} class="text-black">{role}</option>
+<div class="rounded bg-gray-500 p-4">
+	<label for="role-select" class="mb-2 block font-semibold">Switch Role:</label>
+	<select id="role-select" bind:value={selectedRole} class="text-black rounded border p-2">
+		{#each roles as role}
+			<option value={role}>{role}</option>
 		{/each}
 	</select>
 	<button
 		on:click={switchRole}
-		class="mt-2 w-full rounded bg-blue-500 px-4 py-2 text-white transition-all hover:bg-blue-700"
+		class="ml-2 rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-700"
 	>
 		Set Role
 	</button>
