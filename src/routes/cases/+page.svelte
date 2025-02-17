@@ -20,21 +20,21 @@
 		},
 		{
 			id: 'm3n4o5p6-q7r8-9012-c3d4-e5f678901234',
-			fileName: 'DEF456-003',
+			fileName: 'ABC123-002',
 			fileType: 'Filing',
 			status: 'Closed',
 			subStatus: 'Resolved - Paid',
 			address: '789 Oak St',
 			tenant: 'David Green',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440004',
-			attorneyName: 'Lisa Wilson',
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
+			attorneyName: 'Jane Smith',
 			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
 			assignedTo: 'Tom Martinez',
 			clientId: 'ABC123'
 		},
 		{
 			id: 'p6q7r8s9-t0u1-2345-d4e5-f67890123456',
-			fileName: 'LMN456-004',
+			fileName: 'XYZ789-001',
 			fileType: 'Case',
 			status: 'Open',
 			subStatus: 'Filed with Court',
@@ -45,6 +45,34 @@
 			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
 			assignedTo: 'Emily Watson',
 			clientId: 'XYZ789'
+		},
+		{
+			id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
+			fileName: 'ABC123-003',
+			fileType: 'Filing',
+			status: 'Pending',
+			subStatus: 'Awaiting Landlord Response',
+			address: '456 Elm St',
+			tenant: 'Emily Davis',
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
+			attorneyName: 'Jane Smith',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440003',
+			assignedTo: 'Rachel Lee',
+			clientId: 'ABC123'
+		},
+		{
+			id: 'b2c3d4e5-f6a7-8901-2345-678901bcdefg',
+			fileName: 'LMN555-001',
+			fileType: 'Case',
+			status: 'Open',
+			subStatus: 'Hearing Scheduled',
+			address: '222 Cedar Ave',
+			tenant: 'James Brown',
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440006',
+			attorneyName: 'Samantha Clark',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440004',
+			assignedTo: 'Kyle Thompson',
+			clientId: 'LMN555'
 		}
 	];
 
@@ -65,32 +93,12 @@
 		userClientId = clientId || null;
 		userAttorneyUUID = uuid || null;
 
-		console.log(
-			'🔄 Updated Role:',
-			userRole,
-			'Client ID:',
-			userClientId,
-			'Attorney UUID:',
-			userAttorneyUUID
-		);
 		filterFiles();
 	});
 
 	// Filtering logic
 	function filterFiles() {
-		console.log('🔍 Filtering cases for:', { userRole, userClientId, userAttorneyUUID });
-
 		filteredFiles = files.filter((file) => {
-			// Role-based filtering
-			if (userRole === 'client' && file.clientId !== userClientId) {
-				console.log(`❌ Hiding file ${file.fileName} - Client Mismatch`);
-				return false;
-			}
-			if (userRole === 'lawyer' && file.attorney_uuid !== userAttorneyUUID) {
-				console.log(`❌ Hiding file ${file.fileName} - Attorney Mismatch`);
-				return false;
-			}
-
 			// Dropdown filters
 			const statusMatch = selectedStatus === 'all' || file.status.toLowerCase() === selectedStatus;
 			const subStatusMatch =
@@ -107,13 +115,10 @@
 
 			return statusMatch && subStatusMatch && attorneyMatch && assigneeMatch && searchMatch;
 		});
-
-		console.log('✅ Filtered Files:', filteredFiles);
 	}
 
 	// Ensure filtering runs when the page loads
 	onMount(() => {
-		console.log('✅ Cases page loaded, triggering initial filter');
 		filterFiles();
 	});
 </script>

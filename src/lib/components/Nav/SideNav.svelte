@@ -10,7 +10,6 @@
 	auth.subscribe(({ isAuthenticated: authStatus, role }) => {
 		isAuthenticated = authStatus;
 		userRole = role || null;
-		console.log('✅ User Role in SideNav:', userRole);
 	});
 
 	// Navigation links based on roles
@@ -20,22 +19,26 @@
 			{ name: 'Cases', path: '/cases' },
 			{ name: 'Documents', path: '/documents' },
 			{ name: 'Messaging', path: '/messaging' },
-			{ name: 'Analytics', path: '/analytics' },
 			{ name: 'Admin Panel', path: '/admin' }
 		],
 		ops: [
 			{ name: 'Dashboard', path: '/dashboard' },
 			{ name: 'Cases', path: '/cases' },
+			{ name: 'Documents', path: '/documents' },
 			{ name: 'Messaging', path: '/messaging' }
 		],
 		lawyer: [
 			{ name: 'Dashboard', path: '/dashboard' },
 			{ name: 'Cases', path: '/cases' },
-			{ name: 'Documents', path: '/documents' }
+			{ name: 'Documents', path: '/documents' },
+			{ name: 'Messaging', path: '/messaging' }
 		],
 		client: [
 			{ name: 'Dashboard', path: '/dashboard' },
-			{ name: 'Cases', path: '/cases' }
+			{ name: 'Cases', path: '/cases' },
+			{ name: 'Documents', path: '/documents' },
+			{ name: 'Messaging', path: '/messaging' },
+			{ name: 'Analytics', path: '/analytics' }
 		]
 	};
 </script>

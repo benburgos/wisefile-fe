@@ -17,7 +17,7 @@ function getStoredAuth() {
 		try {
 			return JSON.parse(decodeURIComponent(stored.split('=')[1]));
 		} catch (e) {
-			console.error('❌ Failed to parse auth cookie:', e);
+			console.error('Failed to parse auth cookie:', e);
 		}
 	}
 
@@ -36,7 +36,6 @@ export const auth = writable(getStoredAuth());
 // Ensure updates sync to cookies
 auth.subscribe((value) => {
 	if (browser) {
-		console.log('✅ Updating Auth Store:', value);
 		document.cookie = `auth=${encodeURIComponent(JSON.stringify(value))}; path=/; Secure; SameSite=Strict`;
 	}
 });
