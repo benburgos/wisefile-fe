@@ -1,11 +1,9 @@
 <script>
 	import { auth } from '$lib/stores/auth';
-	import { onMount } from 'svelte';
 
-	// Fake Cases Data
 	let files = [
 		{
-			id: 'f1a2b3c4-d5e6-7890-a1b2-c3d4e5f67890',
+			id: 'abc123-001',
 			fileName: 'ABC123-001',
 			fileType: 'Filing',
 			status: 'Open',
@@ -19,60 +17,60 @@
 			clientId: 'ABC123'
 		},
 		{
-			id: 'm3n4o5p6-q7r8-9012-c3d4-e5f678901234',
+			id: 'abc123-002',
 			fileName: 'ABC123-002',
 			fileType: 'Filing',
 			status: 'Closed',
 			subStatus: 'Resolved - Paid',
-			address: '789 Oak St',
+			address: '456 Elm St',
 			tenant: 'David Green',
 			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
 			attorneyName: 'Jane Smith',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
-			assignedTo: 'Tom Martinez',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440003',
+			assignedTo: 'Sarah Williams',
 			clientId: 'ABC123'
 		},
 		{
-			id: 'p6q7r8s9-t0u1-2345-d4e5-f67890123456',
-			fileName: 'XYZ789-001',
+			id: 'abc123-003',
+			fileName: 'ABC123-003',
 			fileType: 'Case',
+			status: 'Pending',
+			subStatus: 'Under Review',
+			address: '789 Maple St',
+			tenant: 'Alice Brown',
+			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
+			attorneyName: 'Jane Smith',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440004',
+			assignedTo: 'Liam Carter',
+			clientId: 'ABC123'
+		},
+		{
+			id: 'xyz789-001',
+			fileName: 'XYZ789-001',
+			fileType: 'Filing',
 			status: 'Open',
-			subStatus: 'Filed with Court',
-			address: '987 Pine St',
-			tenant: 'Sarah Johnson',
+			subStatus: 'Awaiting Court Date',
+			address: '222 Oak St',
+			tenant: 'Olivia Williams',
 			attorney_uuid: '550e8400-e29b-41d4-a716-446655440005',
-			attorneyName: 'James Anderson',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
+			attorneyName: 'Lisa Wilson',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440006',
 			assignedTo: 'Emily Watson',
 			clientId: 'XYZ789'
 		},
 		{
-			id: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
-			fileName: 'ABC123-003',
-			fileType: 'Filing',
-			status: 'Pending',
-			subStatus: 'Awaiting Landlord Response',
-			address: '456 Elm St',
-			tenant: 'Emily Davis',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
-			attorneyName: 'Jane Smith',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440003',
-			assignedTo: 'Rachel Lee',
-			clientId: 'ABC123'
-		},
-		{
-			id: 'b2c3d4e5-f6a7-8901-2345-678901bcdefg',
-			fileName: 'LMN555-001',
+			id: 'xyz789-002',
+			fileName: 'XYZ789-002',
 			fileType: 'Case',
 			status: 'Open',
 			subStatus: 'Hearing Scheduled',
-			address: '222 Cedar Ave',
-			tenant: 'James Brown',
+			address: '555 Pine St',
+			tenant: 'Emma Thompson',
 			attorney_uuid: '550e8400-e29b-41d4-a716-446655440006',
 			attorneyName: 'Samantha Clark',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440004',
+			ops_uuid: '550e8400-e29b-41d4-a716-446655440007',
 			assignedTo: 'Kyle Thompson',
-			clientId: 'LMN555'
+			clientId: 'XYZ789'
 		}
 	];
 
@@ -80,47 +78,31 @@
 	let userRole = null;
 	let userClientId = null;
 	let userAttorneyUUID = null;
-
-	let selectedStatus = 'all';
-	let selectedSubStatus = 'all';
-	let selectedAttorney = 'all';
-	let selectedAssignee = 'all';
 	let searchQuery = '';
 
-	// Subscribe to auth store & trigger filtering when it updates
-	auth.subscribe(({ role, uuid, clientId }) => {
+	// Subscribe to auth store
+	auth.subscribe(({ role, clientId, uuid }) => {
 		userRole = role;
 		userClientId = clientId || null;
 		userAttorneyUUID = uuid || null;
-
 		filterFiles();
 	});
 
-	// Filtering logic
 	function filterFiles() {
 		filteredFiles = files.filter((file) => {
-			// Dropdown filters
-			const statusMatch = selectedStatus === 'all' || file.status.toLowerCase() === selectedStatus;
-			const subStatusMatch =
-				selectedSubStatus === 'all' || file.subStatus.toLowerCase() === selectedSubStatus;
-			const attorneyMatch = selectedAttorney === 'all' || file.attorney_uuid === selectedAttorney;
-			const assigneeMatch = selectedAssignee === 'all' || file.ops_uuid === selectedAssignee;
+			// Role-based filtering
+			if (userRole === 'client' && file.clientId !== userClientId) return false;
+			if (userRole === 'lawyer' && file.attorney_uuid !== userAttorneyUUID) return false;
 
-			// Search filter (Matches file number, address, or tenant)
+			// Search filter - Match anything in the filtered list
+			const searchText = searchQuery.toLowerCase();
 			const searchMatch =
 				searchQuery === '' ||
-				file.fileName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				file.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				file.tenant.toLowerCase().includes(searchQuery.toLowerCase());
+				Object.values(file).some((value) => String(value).toLowerCase().includes(searchText));
 
-			return statusMatch && subStatusMatch && attorneyMatch && assigneeMatch && searchMatch;
+			return searchMatch;
 		});
 	}
-
-	// Ensure filtering runs when the page loads
-	onMount(() => {
-		filterFiles();
-	});
 </script>
 
 <section class="p-6">
@@ -137,6 +119,19 @@
 				New Filing or Case
 			</button>
 		{/if}
+	</div>
+
+	<!-- Search Filter -->
+	<div class="mb-4">
+		<label for="search-filter" class="text-lg font-semibold">Search:</label>
+		<input
+			id="search-filter"
+			type="text"
+			bind:value={searchQuery}
+			on:input={filterFiles}
+			placeholder="Search anything..."
+			class="w-full rounded border px-3 py-2 text-black"
+		/>
 	</div>
 
 	<!-- Cases Table -->
@@ -156,11 +151,8 @@
 			</thead>
 			<tbody>
 				{#each filteredFiles as file}
-					<tr
-						class="cursor-pointer border-t hover:bg-gray-100"
-						on:click={() => (window.location.href = `/cases/${file.id}`)}
-					>
-						<td class="p-3 text-blue-500 underline">{file.fileName}</td>
+					<tr class="cursor-pointer border-t hover:bg-gray-100">
+						<td class="p-3">{file.fileName}</td>
 						<td class="p-3">{file.fileType}</td>
 						<td class="p-3">{file.status}</td>
 						<td class="p-3">{file.subStatus}</td>
