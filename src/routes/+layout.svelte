@@ -34,13 +34,16 @@
 	});
 </script>
 
-<div class="flex">
+<div class="flex h-screen">
 	{#if isAuthenticated}
-		<aside class="h-screen w-64 bg-gray-800 text-white">
+		<!-- Fixed Side Navigation -->
+		<aside class="fixed left-0 top-0 flex h-screen w-64 flex-col bg-gray-800 text-white">
 			<SideNav />
 		</aside>
+
+		<!-- Main Content -->
+		<main class="ml-64 flex-1 overflow-auto p-6">
+			<slot />
+		</main>
 	{/if}
-	<main class="flex-1 p-4">
-		<slot />
-	</main>
 </div>
