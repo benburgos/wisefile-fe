@@ -36,13 +36,15 @@
 
 <div class="flex h-screen">
 	{#if isAuthenticated}
-		<!-- Fixed Side Navigation -->
-		<aside class="fixed left-0 top-0 flex h-screen w-64 flex-col bg-gray-800 text-white">
+		<aside class="h-screen w-64 bg-gray-800 text-white fixed top-0 left-0 flex flex-col">
 			<SideNav />
 		</aside>
-
-		<!-- Main Content -->
-		<main class="ml-64 flex-1 overflow-auto p-6">
+		<main class="flex-1 p-6 ml-64 overflow-auto">
+			<slot />
+		</main>
+	{:else}
+		<!-- Ensure login content still renders -->
+		<main class="flex-1 p-4">
 			<slot />
 		</main>
 	{/if}
