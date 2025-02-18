@@ -1,30 +1,44 @@
 <script>
-	let messages = [
+	import { writable } from 'svelte/store';
+
+	// Fake messages
+	let messages = writable([
 		{
-			id: 1,
-			sender: 'John Doe',
-			subject: 'Case Update',
-			preview: 'The latest updates on case #123...'
+			fileNumber: 'ABC123-001',
+			sender: 'Jane Smith',
+			subject: 'New Court Date',
+			received: 'Feb 10'
 		},
 		{
-			id: 2,
-			sender: 'Admin',
-			subject: 'Policy Change',
-			preview: 'We’ve updated the document policy...'
+			fileNumber: 'XYZ789-002',
+			sender: 'Kyle Thompson',
+			subject: 'Payment Reminder',
+			received: 'Feb 12'
 		}
-	];
+	]);
 </script>
 
 <section class="p-6">
-	<h1 class="mb-6 text-3xl font-bold">Messaging</h1>
+	<h1 class="mb-4 text-3xl font-bold">Messaging</h1>
 
-	<!-- Message List -->
-	<div class="rounded bg-white shadow-md">
-		{#each messages as msg}
-			<div class="cursor-pointer border-b p-4 hover:bg-gray-100">
-				<h2 class="text-lg font-semibold">{msg.subject}</h2>
-				<p class="text-sm text-gray-600">{msg.sender} - {msg.preview}</p>
-			</div>
-		{/each}
-	</div>
+	<table class="w-full border-collapse">
+		<thead class="bg-gray-200">
+			<tr>
+				<th class="p-3 text-left">File #</th>
+				<th class="p-3 text-left">Sender</th>
+				<th class="p-3 text-left">Subject</th>
+				<th class="p-3 text-left">Received</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each $messages as msg}
+				<tr class="border-t">
+					<td class="cursor-pointer p-3 text-blue-500 underline">{msg.fileNumber}</td>
+					<td class="p-3">{msg.sender}</td>
+					<td class="p-3">{msg.subject}</td>
+					<td class="p-3">{msg.received}</td>
+				</tr>
+			{/each}
+		</tbody>
+	</table>
 </section>
