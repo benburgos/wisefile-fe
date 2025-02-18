@@ -1,5 +1,7 @@
 <script>
 	import { auth } from '$lib/stores/auth';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	let files = [
 		{
@@ -88,6 +90,11 @@
 		filterFiles();
 	});
 
+	// Read search query from URL when page loads
+	$: searchQuery = page?.url?.search
+		? new URLSearchParams(page.url.search).get('search') || ''
+		: '';
+
 	function filterFiles() {
 		filteredFiles = files.filter((file) => {
 			// Role-based filtering
@@ -102,6 +109,18 @@
 
 			return searchMatch;
 		});
+	}
+
+	// Redirect to case detail page with search params
+	function openCase(caseId) {
+		goto(`/cases/${caseId}?search=${encodeURIComponent(searchQuery)}`);
+	}
+
+	function applySearch() {
+		// Update URL when searching
+		goto(`/cases?search=${encodeURIComponent(searchQuery)}`);
+		// Apply filtering
+		filterFiles();
 	}
 </script>
 
@@ -122,47 +141,71 @@
 	</div>
 
 	<!-- Search Filter -->
-	<div class="mb-4">
-		<label for="search-filter" class="text-lg font-semibold">Search:</label>
+	<div class="mb-4 flex items-center space-x-3">
 		<input
 			id="search-filter"
 			type="text"
 			bind:value={searchQuery}
-			on:input={filterFiles}
-			placeholder="Search anything..."
+			placeholder="Search cases..."
 			class="w-full rounded border px-3 py-2 text-black"
+			on:keydown={(e) => {
+				if (e.key === 'Enter') applySearch();
+			}}
 		/>
+
+		<!-- Search Button -->
+		<button
+			on:click={applySearch}
+			class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+		>
+			Search
+		</button>
 	</div>
 
 	<!-- Cases Table -->
 	<div class="overflow-x-auto rounded bg-white shadow-md">
-		<table class="w-full border-collapse">
-			<thead class="bg-gray-200">
-				<tr>
-					<th class="p-3 text-left">File #</th>
-					<th class="p-3 text-left">File Type</th>
-					<th class="p-3 text-left">Status</th>
-					<th class="p-3 text-left">Sub-Status</th>
-					<th class="p-3 text-left">Address</th>
-					<th class="p-3 text-left">Tenant</th>
-					<th class="p-3 text-left">Attorney</th>
-					<th class="p-3 text-left">Assignee</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each filteredFiles as file}
-					<tr class="cursor-pointer border-t hover:bg-gray-100">
-						<td class="p-3">{file.fileName}</td>
-						<td class="p-3">{file.fileType}</td>
-						<td class="p-3">{file.status}</td>
-						<td class="p-3">{file.subStatus}</td>
-						<td class="p-3">{file.address}</td>
-						<td class="p-3">{file.tenant}</td>
-						<td class="p-3">{file.attorneyName}</td>
-						<td class="p-3">{file.assignedTo}</td>
+		{#if filteredFiles.length > 0}
+			<table class="w-full border-collapse">
+				<thead class="bg-gray-200">
+					<tr>
+						<th class="p-3 text-left">File #</th>
+						<th class="p-3 text-left">File Type</th>
+						<th class="p-3 text-left">Status</th>
+						<th class="p-3 text-left">Sub-Status</th>
+						<th class="p-3 text-left">Address</th>
+						<th class="p-3 text-left">Tenant</th>
+						<th class="p-3 text-left">Attorney</th>
+						<th class="p-3 text-left">Assignee</th>
 					</tr>
-				{/each}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					{#each filteredFiles as file}
+						<tr class="cursor-pointer border-t hover:bg-gray-100">
+							<td class="p-3">
+								<a
+									href={`/cases/${file.id}?search=${encodeURIComponent(searchQuery)}`}
+									class="text-blue-500 underline"
+								>
+									{file.fileName}
+								</a>
+							</td>
+							<td class="p-3">{file.fileType}</td>
+							<td class="p-3">{file.status}</td>
+							<td class="p-3">{file.subStatus}</td>
+							<td class="p-3">{file.address}</td>
+							<td class="p-3">{file.tenant}</td>
+							<td class="p-3">{file.attorneyName}</td>
+							<td class="p-3">{file.assignedTo}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		{:else}
+			<!-- Placeholder for No Cases Found -->
+			<div class="flex flex-col items-center justify-center p-6 text-gray-500">
+				<p class="text-lg font-semibold">No cases found.</p>
+				<p class="text-sm">Try adjusting your search or submitting a new case.</p>
+			</div>
+		{/if}
 	</div>
 </section>
