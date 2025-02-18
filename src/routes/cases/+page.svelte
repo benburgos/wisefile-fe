@@ -1,7 +1,5 @@
 <script>
 	import { auth } from '$lib/stores/auth';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
 
 	let files = [
 		{
@@ -90,11 +88,6 @@
 		filterFiles();
 	});
 
-	// Read search query from URL when page loads
-	$: searchQuery = page?.url?.search
-		? new URLSearchParams(page.url.search).get('search') || ''
-		: '';
-
 	function filterFiles() {
 		filteredFiles = files.filter((file) => {
 			// Role-based filtering
@@ -109,18 +102,6 @@
 
 			return searchMatch;
 		});
-	}
-
-	// Redirect to case detail page with search params
-	function openCase(caseId) {
-		goto(`/cases/${caseId}?search=${encodeURIComponent(searchQuery)}`);
-	}
-
-	function applySearch() {
-		// Update URL when searching
-		goto(`/cases?search=${encodeURIComponent(searchQuery)}`);
-		// Apply filtering
-		filterFiles();
 	}
 </script>
 
@@ -141,25 +122,16 @@
 	</div>
 
 	<!-- Search Filter -->
-	<div class="mb-4 flex items-center space-x-3">
+	<div class="mb-4">
+		<label for="search-filter" class="text-lg font-semibold">Search:</label>
 		<input
 			id="search-filter"
 			type="text"
 			bind:value={searchQuery}
-			placeholder="Search cases..."
+			placeholder="Search anything..."
 			class="w-full rounded border px-3 py-2 text-black"
-			on:keydown={(e) => {
-				if (e.key === 'Enter') applySearch();
-			}}
+			on:input={filterFiles}
 		/>
-
-		<!-- Search Button -->
-		<button
-			on:click={applySearch}
-			class="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-		>
-			Search
-		</button>
 	</div>
 
 	<!-- Cases Table -->
@@ -182,10 +154,7 @@
 					{#each filteredFiles as file}
 						<tr class="cursor-pointer border-t hover:bg-gray-100">
 							<td class="p-3">
-								<a
-									href={`/cases/${file.id}?search=${encodeURIComponent(searchQuery)}`}
-									class="text-blue-500 underline"
-								>
+								<a href={`/cases/${file.id}`} class="text-blue-500 underline">
 									{file.fileName}
 								</a>
 							</td>
