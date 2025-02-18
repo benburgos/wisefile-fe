@@ -18,6 +18,7 @@
 			{ name: 'Dashboard', path: '/dashboard' },
 			{ name: 'Cases', path: '/cases' },
 			{ name: 'Documents', path: '/documents' },
+			{ name: 'Invoices', path: '/invoices' },
 			{ name: 'Messaging', path: '/messaging' },
 			{ name: 'Admin Panel', path: '/admin' }
 		],
@@ -25,6 +26,7 @@
 			{ name: 'Dashboard', path: '/dashboard' },
 			{ name: 'Cases', path: '/cases' },
 			{ name: 'Documents', path: '/documents' },
+			{ name: 'Invoices', path: '/invoices' },
 			{ name: 'Messaging', path: '/messaging' }
 		],
 		lawyer: [
@@ -37,6 +39,7 @@
 			{ name: 'Dashboard', path: '/dashboard' },
 			{ name: 'Cases', path: '/cases' },
 			{ name: 'Documents', path: '/documents' },
+			{ name: 'Invoices', path: '/invoices' },
 			{ name: 'Messaging', path: '/messaging' },
 			{ name: 'Analytics', path: '/analytics' }
 		]
