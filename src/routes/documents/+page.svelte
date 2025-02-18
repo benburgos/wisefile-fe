@@ -15,25 +15,28 @@
 <section class="p-6">
 	<h1 class="mb-4 text-3xl font-bold">Documents</h1>
 
-	<table class="w-full border-collapse">
-		<thead class="bg-gray-200">
-			<tr>
-				<th class="p-3 text-left">Filename</th>
-				<th class="p-3 text-left">Actions</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each $documents as doc}
-				<tr class="border-t">
-					<td class="p-3">{doc.name}</td>
-					<td class="p-3">
-						<a href={doc.fileUrl} target="_blank" class="text-blue-500 underline">View</a>
-						<button on:click={() => deleteDocument(doc.id)} class="ml-4 text-red-500 underline"
-							>Delete</button
-						>
-					</td>
+	<!-- Styled Table -->
+	<div class="overflow-x-auto rounded bg-white shadow-md">
+		<table class="w-full border-collapse">
+			<thead class="bg-gray-200 text-left">
+				<tr>
+					<th class="border-b p-3">Filename</th>
+					<th class="border-b p-3">Actions</th>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</thead>
+			<tbody>
+				{#each $documents as doc}
+					<tr class="border-t hover:bg-gray-100">
+						<td class="p-3">{doc.name}</td>
+						<td class="p-3">
+							<a href={doc.fileUrl} target="_blank" class="text-blue-500 underline">View</a>
+							<button on:click={() => deleteDocument(doc.id)} class="ml-4 text-red-500 underline">
+								Delete
+							</button>
+						</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 </section>

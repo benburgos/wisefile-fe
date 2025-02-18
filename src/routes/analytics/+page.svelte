@@ -1,42 +1,112 @@
 <script>
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
 	import { writable } from 'svelte/store';
 
-	// Fake Data
+	// Mock case data
 	let caseStats = writable([
-		{ status: 'Open', count: 23 },
-		{ status: 'Pending', count: 10 },
-		{ status: 'Closed', count: 50 }
+		{ status: 'Open Cases', count: 34 },
+		{ status: 'Pending Cases', count: 12 },
+		{ status: 'Closed Cases', count: 78 },
+		{ status: 'Disputed Cases', count: 5 }
 	]);
 
+	// Mock revenue data
 	let revenueStats = writable([
-		{ month: 'Jan', revenue: 5000 },
-		{ month: 'Feb', revenue: 7000 },
-		{ month: 'Mar', revenue: 6500 }
+		{ month: 'January', revenue: 12000 },
+		{ month: 'February', revenue: 10500 },
+		{ month: 'March', revenue: 13800 }
+	]);
+
+	// Mock user engagement
+	let userActivity = writable([
+		{ metric: 'New Users', value: 34 },
+		{ metric: 'Returning Users', value: 21 },
+		{ metric: 'Average Session Time', value: '4m 32s' },
+		{ metric: 'Messages Sent', value: 128 },
+		{ metric: 'Documents Uploaded', value: 56 }
+	]);
+
+	// Mock SLA Performance Data
+	let slaPerformance = writable([
+		{ metric: 'Avg Case Resolution Time', value: '12 days' },
+		{ metric: 'Cases Resolved on Time', value: '89%' },
+		{ metric: 'Escalations to Management', value: 7 },
+		{ metric: 'Avg First Response Time', value: '3h 24m' }
 	]);
 </script>
 
 <section class="p-6">
-	<h1 class="mb-4 text-3xl font-bold">Analytics</h1>
+	<h1 class="mb-4 text-3xl font-bold">Analytics Dashboard</h1>
 
-	<!-- Cases Status Overview -->
-	<div class="mb-6">
-		<h2 class="text-xl font-bold">Case Status Overview</h2>
-		<ul class="mt-2">
-			{#each $caseStats as stat}
-				<li class="border-b p-2"><strong>{stat.status}:</strong> {stat.count}</li>
-			{/each}
-		</ul>
+	<!-- Overview Stats (Grid Layout) -->
+	<div class="mb-6 grid grid-cols-4 gap-4">
+		{#each $caseStats as stat}
+			<div class="rounded bg-blue-100 p-4 shadow-md">
+				<h2 class="text-xl font-bold">{stat.count}</h2>
+				<p class="text-gray-600">{stat.status}</p>
+			</div>
+		{/each}
 	</div>
 
-	<!-- Revenue Overview -->
-	<div>
-		<h2 class="text-xl font-bold">Revenue Overview</h2>
-		<ul class="mt-2">
-			{#each $revenueStats as stat}
-				<li class="border-b p-2"><strong>{stat.month}:</strong> ${stat.revenue}</li>
-			{/each}
-		</ul>
+	<!-- Revenue Table -->
+	<div class="mb-6 rounded bg-white p-4 shadow-md">
+		<h2 class="mb-2 text-xl font-bold">Revenue Overview</h2>
+		<table class="w-full border-collapse">
+			<thead class="bg-gray-200">
+				<tr>
+					<th class="p-3 text-left">Month</th>
+					<th class="p-3 text-left">Revenue</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each $revenueStats as stat}
+					<tr class="border-t">
+						<td class="p-3">{stat.month}</td>
+						<td class="p-3">${stat.revenue.toLocaleString()}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+
+	<!-- User Engagement Data -->
+	<div class="mb-6 rounded bg-white p-4 shadow-md">
+		<h2 class="mb-2 text-xl font-bold">User Engagement</h2>
+		<table class="w-full border-collapse">
+			<thead class="bg-gray-200">
+				<tr>
+					<th class="p-3 text-left">Metric</th>
+					<th class="p-3 text-left">Value</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each $userActivity as stat}
+					<tr class="border-t">
+						<td class="p-3">{stat.metric}</td>
+						<td class="p-3">{stat.value}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
+
+	<!-- SLA Performance Data -->
+	<div class="rounded bg-white p-4 shadow-md">
+		<h2 class="mb-2 text-xl font-bold">SLA Performance</h2>
+		<table class="w-full border-collapse">
+			<thead class="bg-gray-200">
+				<tr>
+					<th class="p-3 text-left">Metric</th>
+					<th class="p-3 text-left">Value</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each $slaPerformance as stat}
+					<tr class="border-t">
+						<td class="p-3">{stat.metric}</td>
+						<td class="p-3">{stat.value}</td>
+					</tr>
+				{/each}
+			</tbody>
+		</table>
 	</div>
 </section>
