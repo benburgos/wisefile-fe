@@ -47,16 +47,22 @@
 	};
 </script>
 
-<nav class="flex h-full flex-col bg-[var(--color-sidebar-bg)] p-4 text-white">
-	<ul class="flex-grow space-y-2">
+<nav class="flex h-screen w-64 flex-col bg-[var(--color-sidebar-bg)] p-4 shadow-md">
+	<ul class="flex-grow space-y-1">
 		{#if userRole && navLinks[userRole]?.length}
 			{#each navLinks[userRole] as link}
 				<li>
 					<a
 						href={link.path}
-						class="block rounded px-4 py-2 transition-all"
+						class="block rounded-lg px-4 py-2 font-medium transition-all duration-300"
 						class:font-bold={$page.url.pathname === link.path}
-						style="background-color: var(--color-sidebar-hover);"
+						style="
+							background-color: var(--color-sidebar-item);
+							color: var(--color-sidebar-text);
+						"
+						on:mouseenter={() =>
+							(event.target.style.backgroundColor = 'var(--color-sidebar-hover)')}
+						on:mouseleave={() => (event.target.style.backgroundColor = 'var(--color-sidebar-item)')}
 					>
 						{link.name}
 					</a>
@@ -68,16 +74,18 @@
 	</ul>
 
 	<!-- RoleSwitcher -->
-	<div class="border-t border-[var(--color-border)] bg-[var(--color-sidebar-bg)] p-4">
+	<div class="mt-6">
 		<RoleSwitcher />
 	</div>
 
 	<!-- Logout Button -->
-	<div class="mt-4 rounded p-4" style="background-color: var(--color-sidebar-hover);">
+	<div class="mt-6">
 		<button
 			on:click={logoutUser}
-			class="w-full rounded px-4 py-2 text-white transition-all"
-			style="background-color: var(--color-danger);"
+			class="w-full rounded-lg px-4 py-2 font-semibold transition-all duration-300"
+			style="background-color: var(--color-danger); color: #fff;"
+			on:mouseenter={() => (event.target.style.backgroundColor = 'var(--color-danger-hover)')}
+			on:mouseleave={() => (event.target.style.backgroundColor = 'var(--color-danger)')}
 		>
 			Logout
 		</button>
