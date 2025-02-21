@@ -3,16 +3,60 @@
 @import 'tailwindcss/utilities';
 
 :root {
-	--color-primary: #c21c19;
-	--color-background: #f2f2f2;
-	--color-border: #dcdcdc;
-	--color-text-primary: #000000;
-	--color-text-secondary: #6e6e6e;
-	--color-white: #ffffff;
+	/* Primary Colors */
+	--color-primary: #c21c19; /* Main Accent Red */
+	--color-primary-dark: #9e1714; /* Slightly Darker Red */
+	--color-primary-light: #e83531; /* Slightly Lighter Red */
+
+	/* Neutral Grays */
+	--color-background: #f2f2f2; /* Light Gray */
+	--color-surface: #ffffff; /* Pure White */
+	--color-border: #dcdcdc; /* Soft Border Gray */
+	--color-text-primary: #000000; /* Black for text */
+	--color-text-secondary: #6e6e6e; /* Dark Gray for secondary text */
+	--color-text-muted: #a1a1a1; /* Lighter Gray for muted text */
+
+	/* Sidebar and UI Colors */
+	--color-sidebar-bg: #f2f2f2; /* Sidebar Background */
+	--color-sidebar-hover: #dcdcdc; /* Hover state for sidebar */
+	--color-sidebar-active: #c21c19; /* Active link background */
+	--color-sidebar-text: #000000; /* Text color in sidebar */
+
+	/* Buttons */
+	--color-btn-primary: #c21c19;
+	--color-btn-primary-hover: #9e1714;
+	--color-btn-secondary: #6e6e6e;
+	--color-btn-secondary-hover: #4e4e4e;
+
+	/* Table Styling */
+	--color-table-header: #dcdcdc;
+	--color-table-row-hover: #f2f2f2;
+	--color-table-border: #dcdcdc;
+
+	/* Status Colors */
+	--color-success: #2e7d32; /* Green */
+	--color-warning: #f9a825; /* Yellow */
+	--color-error: #c21c19; /* Red */
+	--color-info: #1976d2; /* Blue */
 }
 
-/* Apply background color */
+/* Global Styles */
 body {
 	background-color: var(--color-background);
 	color: var(--color-text-primary);
+	font-family: 'Inter', sans-serif;
+}
+
+a {
+	color: var(--color-sidebar-text);
+	text-decoration: none;
+}
+
+a:hover {
+	color: var(--color-primary);
+}
+
+button {
+	cursor: pointer;
+	transition: all 0.2s ease-in-out;
 }

@@ -47,18 +47,18 @@
 	};
 </script>
 
-<nav class="bg-background border-border text-textPrimary flex h-full flex-col border-r">
+<nav class="flex h-full flex-col border-r border-[#DCDCDC] bg-[#F2F2F2] text-[#000000]">
 	<ul class="flex-grow space-y-2">
 		{#if userRole && navLinks[userRole]?.length}
 			{#each navLinks[userRole] as link}
 				<li>
 					<a
 						href={link.path}
-						class="text-textPrimary block rounded px-4 py-2 transition-all"
-						class:bg-primary={$page.url.pathname === link.path}
+						class="block rounded px-4 py-2 transition-all"
+						class:bg-[#C21C19]={$page.url.pathname === link.path}
 						class:text-white={$page.url.pathname === link.path}
 						class:font-bold={$page.url.pathname === link.path}
-						class:hover:bg-border
+						class:hover:bg-[#DCDCDC]
 					>
 						{link.name}
 					</a>
@@ -70,13 +70,15 @@
 	</ul>
 
 	<!-- Importing RoleSwitcher instead of inline logic -->
-	<RoleSwitcher />
+	<div class="border-t border-[#DCDCDC] bg-[#F2F2F2] p-4">
+		<RoleSwitcher />
+	</div>
 
 	<!-- Logout Button -->
-	<div class="mt-4 rounded bg-gray-700 p-4">
+	<div class="mt-4 border-t border-[#DCDCDC] bg-[#F2F2F2] p-4">
 		<button
 			on:click={logoutUser}
-			class="w-full rounded bg-red-500 px-4 py-2 text-white transition-all hover:bg-red-700"
+			class="w-full rounded bg-[#C21C19] px-4 py-2 text-white transition-all hover:bg-opacity-90"
 		>
 			Logout
 		</button>

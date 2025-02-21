@@ -16,12 +16,30 @@ export default {
 	theme: {
 		extend: {
 			colors: {
-				primary: '#C21C19', // Red Accent for highlights, buttons
-				background: '#F2F2F2', // Light Gray for main background
-				border: '#DCDCDC', // Gray for subtle borders
-				textPrimary: '#000000', // Black for main text
-				textSecondary: '#6E6E6E', // Dark Gray for less important text
-				white: '#FFFFFF' // White for contrast
+				primary: '#C21C19',
+				primaryDark: '#9E1714',
+				primaryLight: '#E83531',
+				background: '#F2F2F2',
+				surface: '#FFFFFF',
+				border: '#DCDCDC',
+				textPrimary: '#000000',
+				textSecondary: '#6E6E6E',
+				textMuted: '#A1A1A1',
+				sidebarBg: '#F2F2F2',
+				sidebarHover: '#DCDCDC',
+				sidebarActive: '#C21C19',
+				sidebarText: '#000000',
+				btnPrimary: '#C21C19',
+				btnPrimaryHover: '#9E1714',
+				btnSecondary: '#6E6E6E',
+				btnSecondaryHover: '#4E4E4E',
+				tableHeader: '#DCDCDC',
+				tableRowHover: '#F2F2F2',
+				tableBorder: '#DCDCDC',
+				success: '#2E7D32',
+				warning: '#F9A825',
+				error: '#C21C19',
+				info: '#1976D2'
 			}
 		}
 	},
