@@ -14,7 +14,16 @@ export default {
 		join(require.resolve('@skeletonlabs/skeleton'), '../**/*.{html,js,svelte,ts}')
 	],
 	theme: {
-		extend: {}
+		extend: {
+			colors: {
+				primary: '#C21C19', // Red Accent for highlights, buttons
+				background: '#F2F2F2', // Light Gray for main background
+				border: '#DCDCDC', // Gray for subtle borders
+				textPrimary: '#000000', // Black for main text
+				textSecondary: '#6E6E6E', // Dark Gray for less important text
+				white: '#FFFFFF' // White for contrast
+			}
+		}
 	},
 	plugins: [
 		skeleton({
