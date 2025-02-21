@@ -47,7 +47,7 @@
 	};
 </script>
 
-<nav class="flex h-full flex-col border-r border-[#DCDCDC] bg-[#F2F2F2] text-[#000000]">
+<nav class="flex h-full flex-col bg-[var(--color-sidebar-bg)] p-4 text-white">
 	<ul class="flex-grow space-y-2">
 		{#if userRole && navLinks[userRole]?.length}
 			{#each navLinks[userRole] as link}
@@ -55,10 +55,8 @@
 					<a
 						href={link.path}
 						class="block rounded px-4 py-2 transition-all"
-						class:bg-[#C21C19]={$page.url.pathname === link.path}
-						class:text-white={$page.url.pathname === link.path}
 						class:font-bold={$page.url.pathname === link.path}
-						class:hover:bg-[#DCDCDC]
+						style="background-color: var(--color-sidebar-hover);"
 					>
 						{link.name}
 					</a>
@@ -69,16 +67,17 @@
 		{/if}
 	</ul>
 
-	<!-- Importing RoleSwitcher instead of inline logic -->
-	<div class="border-t border-[#DCDCDC] bg-[#F2F2F2] p-4">
+	<!-- RoleSwitcher -->
+	<div class="border-t border-[var(--color-border)] bg-[var(--color-sidebar-bg)] p-4">
 		<RoleSwitcher />
 	</div>
 
 	<!-- Logout Button -->
-	<div class="mt-4 border-t border-[#DCDCDC] bg-[#F2F2F2] p-4">
+	<div class="mt-4 rounded p-4" style="background-color: var(--color-sidebar-hover);">
 		<button
 			on:click={logoutUser}
-			class="w-full rounded bg-[#C21C19] px-4 py-2 text-white transition-all hover:bg-opacity-90"
+			class="w-full rounded px-4 py-2 text-white transition-all"
+			style="background-color: var(--color-danger);"
 		>
 			Logout
 		</button>
