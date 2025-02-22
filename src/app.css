@@ -2,61 +2,201 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* Global Colors */
 :root {
-	/* Primary Colors */
-	--color-primary: #c21c19; /* Main Accent Red */
-	--color-primary-dark: #9e1714; /* Slightly Darker Red */
-	--color-primary-light: #e83531; /* Slightly Lighter Red */
+    --color-primary: #7D0D0B; /* Dark Red */
+    --color-primary-light: #C21C19; /* Accent Red */
+    --color-primary-dark: #5A0A09; /* Deeper Dark Red */
 
-	/* Neutral Grays */
-	--color-background: #f2f2f2; /* Light Gray */
-	--color-surface: #ffffff; /* Pure White */
-	--color-border: #dcdcdc; /* Soft Border Gray */
-	--color-text-primary: #000000; /* Black for text */
-	--color-text-secondary: #6e6e6e; /* Dark Gray for secondary text */
-	--color-text-muted: #a1a1a1; /* Lighter Gray for muted text */
+    --color-background: #F2F2F2; /* Light Gray */
+    --color-surface: #FFFFFF; /* White */
+    --color-border: #DCDCDC; /* Gray */
+    --color-text: #000000; /* Black */
+    --color-text-muted: #6E6E6E; /* Dark Gray */
 
-	/* Sidebar and UI Colors */
-	--color-sidebar-bg: #f2f2f2; /* Sidebar Background */
-	--color-sidebar-hover: #dcdcdc; /* Hover state for sidebar */
-	--color-sidebar-active: #c21c19; /* Active link background */
-	--color-sidebar-text: #000000; /* Text color in sidebar */
+    --color-success: #4CAF50; /* Green */
+    --color-warning: #FFC107; /* Yellow */
+    --color-danger: #D32F2F; /* Red */
+    --color-info: #2196F3; /* Blue */
 
-	/* Buttons */
-	--color-btn-primary: #c21c19;
-	--color-btn-primary-hover: #9e1714;
-	--color-btn-secondary: #6e6e6e;
-	--color-btn-secondary-hover: #4e4e4e;
+    --color-sidebar: #2E2E2E; /* Dark Gray for Sidebar */
+    --color-sidebar-hover: #474747; /* Slightly lighter gray */
+    --color-sidebar-active: var(--color-primary); /* Active link background */
+    --color-sidebar-text: #FFFFFF; /* White text for sidebar */
+    --color-sidebar-text-muted: #BDBDBD; /* Muted text for inactive items */
 
-	/* Table Styling */
-	--color-table-header: #dcdcdc;
-	--color-table-row-hover: #f2f2f2;
-	--color-table-border: #dcdcdc;
-
-	/* Status Colors */
-	--color-success: #2e7d32; /* Green */
-	--color-warning: #f9a825; /* Yellow */
-	--color-error: #c21c19; /* Red */
-	--color-info: #1976d2; /* Blue */
+    --border-radius: 8px;
+    --shadow-light: 0px 1px 3px rgba(0, 0, 0, 0.12);
+    --shadow-medium: 0px 3px 6px rgba(0, 0, 0, 0.16);
+    --shadow-heavy: 0px 4px 10px rgba(0, 0, 0, 0.2);
 }
 
-/* Global Styles */
+/* Reset Styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+}
+
+/* Body & Background */
 body {
-	background-color: var(--color-background);
-	color: var(--color-text-primary);
-	font-family: 'Inter', sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
 }
 
-a {
-	color: var(--color-sidebar-text);
-	text-decoration: none;
+/* Sidebar */
+.sidebar {
+    background-color: var(--color-sidebar);
+    color: var(--color-sidebar-text);
+    width: 250px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    position: fixed;
+    left: 0;
+    top: 0;
+    box-shadow: var(--shadow-medium);
 }
 
-a:hover {
-	color: var(--color-primary);
+/* Sidebar Links */
+.sidebar a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: var(--color-sidebar-text);
+    padding: 12px 16px;
+    border-radius: var(--border-radius);
+    transition: all 0.3s ease-in-out;
 }
 
+.sidebar a:hover {
+    background-color: var(--color-sidebar-hover);
+}
+
+.sidebar a.active {
+    background-color: var(--color-sidebar-active);
+    color: var(--color-sidebar-text);
+}
+
+/* Sidebar Icons */
+.sidebar-icon {
+    margin-right: 10px;
+    font-size: 1.2rem;
+}
+
+/* Content Area */
+.content {
+    margin-left: 250px;
+    padding: 2rem;
+}
+
+/* Buttons */
 button {
-	cursor: pointer;
-	transition: all 0.2s ease-in-out;
+    padding: 10px 16px;
+    border-radius: var(--border-radius);
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+button.primary {
+    background-color: var(--color-primary);
+    color: var(--color-surface);
+}
+
+button.primary:hover {
+    background-color: var(--color-primary-dark);
+}
+
+button.danger {
+    background-color: var(--color-danger);
+    color: var(--color-surface);
+}
+
+button.danger:hover {
+    background-color: #b71c1c;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-light);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+}
+
+th {
+    background-color: var(--color-primary-light);
+    color: var(--color-surface);
+    font-weight: bold;
+}
+
+/* Cards */
+.card {
+    background-color: var(--color-surface);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    margin-bottom: 1rem;
+}
+
+/* Forms */
+input, textarea, select {
+    width: 100%;
+    padding: 10px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--color-border);
+    outline: none;
+    transition: border 0.2s;
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--color-primary);
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--color-primary);
+    border-radius: var(--border-radius);
+}
+
+::-webkit-scrollbar-track {
+    background-color: var(--color-background);
+}
+
+/* Flex Layout */
+.flex {
+    display: flex;
+}
+
+.flex-column {
+    display: flex;
+    flex-direction: column;
+}
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.flex-space-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
