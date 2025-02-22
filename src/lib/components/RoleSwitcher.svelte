@@ -26,23 +26,27 @@
 	}
 </script>
 
-<div class="p-4 bg-[var(--color-sidebar-bg)]">
-	<label for="role-select" class="mb-2 block font-semibold text-[var(--color-text-primary)]">
-	  Switch Role:
+<div class="border border-[var(--color-border)] p-4">
+	<label for="role-select" class="mb-2 block text-sm font-medium text-[var(--color-sidebar-text)]">
+		Switch Role:
 	</label>
-	<select
-	  id="role-select"
-	  bind:value={selectedRole}
-	  class="w-full rounded border border-[var(--color-border)] bg-[var(--color-surface)] p-2 text-[var(--color-text-primary)]"
-	>
-	  {#each roles as role}
-		<option value={role}>{role}</option>
-	  {/each}
-	</select>
+
+	<div class="relative">
+		<select
+			id="role-select"
+			bind:value={selectedRole}
+			class="w-full rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-black focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary-light)]"
+		>
+			{#each roles as role}
+				<option value={role} class="text-black">{role}</option>
+			{/each}
+		</select>
+	</div>
+
 	<button
-	  on:click={changeRole}
-	  class="mt-2 w-full rounded bg-[var(--color-btn-primary)] px-4 py-2 text-white hover:bg-[var(--color-btn-primary-hover)]"
+		on:click={changeRole}
+		class="mt-3 w-full rounded-md bg-[var(--color-primary)] px-4 py-2 font-semibold text-white transition-all duration-300 hover:bg-[var(--color-primary-hover)] focus:ring-2 focus:ring-[var(--color-primary-light)]"
 	>
-	  Set Role
+		Set Role
 	</button>
-  </div>
+</div>
