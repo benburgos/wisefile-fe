@@ -47,47 +47,40 @@
 	};
 </script>
 
-<nav class="flex h-screen w-64 flex-col bg-[var(--color-sidebar-bg)] p-4 shadow-md">
-	<ul class="flex-grow space-y-1">
+<nav class="flex h-screen w-64 flex-col bg-[var(--color-sidebar)] text-[var(--color-sidebar-text)] shadow-lg">
+	<!-- Navigation Links -->
+	<ul class="flex-grow space-y-1 p-4">
 		{#if userRole && navLinks[userRole]?.length}
 			{#each navLinks[userRole] as link}
 				<li>
 					<a
 						href={link.path}
-						class="block rounded-lg px-4 py-2 font-medium transition-all duration-300"
+						class="block rounded-md px-4 py-2 font-medium transition-all duration-300 hover:bg-[var(--color-sidebar-hover)]"
 						class:font-bold={$page.url.pathname === link.path}
-						style="
-							background-color: var(--color-sidebar-item);
-							color: var(--color-sidebar-text);
-						"
-						on:mouseenter={() =>
-							(event.target.style.backgroundColor = 'var(--color-sidebar-hover)')}
-						on:mouseleave={() => (event.target.style.backgroundColor = 'var(--color-sidebar-item)')}
+						class:active-link={$page.url.pathname === link.path}
 					>
 						{link.name}
 					</a>
 				</li>
 			{/each}
 		{:else}
-			<li class="text-sm italic text-gray-400">No links available</li>
+			<li class="text-sm italic text-gray-400 p-4">No links available</li>
 		{/if}
 	</ul>
 
 	<!-- RoleSwitcher -->
-	<div class="mt-6">
+	<div class="p-4 border-t border-[var(--color-border)]">
 		<RoleSwitcher />
 	</div>
 
 	<!-- Logout Button -->
-	<div class="mt-6">
+	<div class="p-4">
 		<button
 			on:click={logoutUser}
-			class="w-full rounded-lg px-4 py-2 font-semibold transition-all duration-300"
-			style="background-color: var(--color-danger); color: #fff;"
-			on:mouseenter={() => (event.target.style.backgroundColor = 'var(--color-danger-hover)')}
-			on:mouseleave={() => (event.target.style.backgroundColor = 'var(--color-danger)')}
+			class="w-full rounded-lg bg-[var(--color-sidebar)] px-4 py-2 font-semibold text-white transition-all duration-300 hover:bg-[var(--color-sidebar-hover)]"
 		>
 			Logout
 		</button>
 	</div>
 </nav>
+
