@@ -29,12 +29,33 @@
 
 	let searchQuery = '';
 	let selectedDocument = null;
+	let selectedFiles = writable([]); // Store files before upload
 
-	// Upload Function (Placeholder)
-	function uploadFile(event) {
-		let file = event.target.files[0];
-		if (!file) return;
-		alert(`Uploading: ${file.name} (This will be hooked up to the backend using S3)`);
+	// Add file to the queue
+	function handleFileSelect(event) {
+		let files = event.target.files;
+		if (!files.length) return;
+		selectedFiles.update((currentFiles) => [...currentFiles, ...Array.from(files)]);
+	}
+
+	// Remove file from queue
+	function removeFile(index) {
+		selectedFiles.update((files) => files.filter((_, i) => i !== index));
+	}
+
+	// Upload Function (Placeholder for Backend API)
+	function uploadFiles() {
+		selectedFiles.subscribe((files) => {
+			if (files.length === 0) {
+				alert('No files selected.');
+				return;
+			}
+
+			alert(`Uploading ${files.length} files... (Backend API Call Goes Here)`);
+
+			// Clear selected files after upload
+			selectedFiles.set([]);
+		});
 	}
 
 	// Open PDF Preview
@@ -49,7 +70,7 @@
 		}
 	}
 
-	// **Updated Search Functionality**
+	// Search function (Matches all columns)
 	function matchesSearch(doc) {
 		const query = searchQuery.toLowerCase();
 		return (
@@ -68,10 +89,36 @@
 		<label
 			class="cursor-pointer rounded-lg bg-[var(--color-primary)] px-6 py-2 text-white shadow-md transition hover:bg-opacity-90"
 		>
-			Upload Document
-			<input type="file" class="hidden" on:change={uploadFile} />
+			Select Files
+			<input type="file" class="hidden" multiple on:change={handleFileSelect} />
 		</label>
 	</div>
+
+	<!-- Selected Files Before Upload -->
+	{#if $selectedFiles.length > 0}
+		<div class="mb-4 rounded-lg bg-gray-100 p-4">
+			<h2 class="mb-2 text-lg font-semibold">Files to Upload:</h2>
+			<ul>
+				{#each $selectedFiles as file, index}
+					<li class="mb-2 flex items-center justify-between rounded bg-white p-2 shadow">
+						<span>{file.name}</span>
+						<button
+							on:click={() => removeFile(index)}
+							class="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-700"
+						>
+							Remove
+						</button>
+					</li>
+				{/each}
+			</ul>
+			<button
+				on:click={uploadFiles}
+				class="mt-3 rounded-lg bg-green-600 px-6 py-2 text-white shadow-md transition hover:bg-green-700"
+			>
+				Upload Files
+			</button>
+		</div>
+	{/if}
 
 	<!-- Search Bar -->
 	<input
