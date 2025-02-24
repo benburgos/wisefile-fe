@@ -48,6 +48,9 @@
 	let showUpdateModal = false;
 	let selectedInvoice = null;
 	let newStatus = '';
+	let showUploadModal = false; // ✅ Added for Upload Invoice Modal
+	let uploadedFile = null; // Stores the selected file for upload
+
 	let sortDirection = { column: 'status', order: 'desc' };
 	let userRole = null;
 
@@ -89,29 +92,38 @@
 		});
 	}
 
+	// ✅ View Invoice Function
 	function viewInvoice(fileName) {
 		selectedInvoiceFile = fileName;
 		showInvoiceModal = true;
 	}
 
+	// ✅ Close View Invoice Modal
+	function closeInvoiceModal() {
+		showInvoiceModal = false;
+		selectedInvoiceFile = null;
+	}
+
+	// ✅ Download Invoice Function
 	function downloadInvoice(fileName) {
 		alert(`Downloading ${fileName}...`);
 	}
 
+	// ✅ Delete Invoice Function
 	function deleteInvoice(invoiceId) {
 		if (confirm('Are you sure you want to delete this invoice?')) {
 			invoices.update((current) => current.filter((inv) => inv.id !== invoiceId));
 		}
 	}
 
-	// Open update modal and set default selection
+	// ✅ Open Update Status Modal
 	function openUpdateModal(invoice) {
 		selectedInvoice = invoice;
 		newStatus = invoice.status;
 		showUpdateModal = true;
 	}
 
-	// Confirm and update status
+	// ✅ Confirm Status Update
 	function confirmStatusUpdate() {
 		if (!selectedInvoice) return;
 
@@ -123,6 +135,35 @@
 		}
 
 		showUpdateModal = false;
+	}
+
+	// ✅ Handle File Upload (for Upload Invoice Modal)
+	function handleFileUpload(event) {
+		const file = event.target.files[0];
+		if (file && file.type === 'application/pdf') {
+			uploadedFile = file;
+		} else {
+			alert('Please upload a valid PDF file.');
+			uploadedFile = null;
+		}
+	}
+
+	// ✅ Upload Invoice Function
+	function uploadInvoice() {
+		if (!uploadedFile) {
+			alert('Please select a file first.');
+			return;
+		}
+
+		// Ideally, this would send to S3 and store metadata in MongoDB
+		alert(`Uploading ${uploadedFile.name}...`);
+		showUploadModal = false;
+	}
+
+	// ✅ Close Upload Invoice Modal
+	function closeUploadModal() {
+		showUploadModal = false;
+		uploadedFile = null;
 	}
 </script>
 
@@ -217,26 +258,77 @@
 			</tbody>
 		</table>
 	</div>
+</section>
 
-	{#if showUpdateModal}
-		<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-			<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-				<h2 class="mb-4 text-xl font-bold">Update Invoice Status</h2>
-				<select bind:value={newStatus} class="w-full rounded-lg border px-4 py-2">
-					<option value="Unpaid">Unpaid</option>
-					<option value="Paid">Paid</option>
-				</select>
-				<div class="mt-4 flex justify-end">
-					<button
-						on:click={confirmStatusUpdate}
-						class="mr-2 rounded bg-green-600 px-4 py-2 text-white">Confirm</button
-					>
-					<button
-						on:click={() => (showUpdateModal = false)}
-						class="rounded bg-gray-500 px-4 py-2 text-white">Cancel</button
-					>
-				</div>
+<!-- Upload Invoice Modal -->
+{#if showUploadModal}
+	<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+			<h2 class="mb-4 text-xl font-bold">Upload Invoice</h2>
+			<input
+				type="file"
+				accept="application/pdf"
+				class="w-full border p-2"
+				on:change={handleFileUpload}
+			/>
+			<div class="mt-4 flex justify-end gap-2">
+				<button on:click={closeUploadModal} class="rounded bg-gray-500 px-4 py-2 text-white">
+					Cancel
+				</button>
+				<button
+					on:click={uploadInvoice}
+					class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+				>
+					Upload
+				</button>
 			</div>
 		</div>
-	{/if}
-</section>
+	</div>
+{/if}
+
+<!-- View Modal -->
+{#if showInvoiceModal}
+	<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+		<div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
+			<h2 class="mb-4 text-xl font-bold">Invoice Preview</h2>
+			<iframe
+				src="/path-to-invoice/{selectedInvoiceFile}"
+				title="Invoice Preview"
+				class="h-96 w-full rounded-lg border"
+			></iframe>
+			<div class="mt-4 flex justify-end">
+				<button on:click={closeInvoiceModal} class="rounded bg-gray-500 px-4 py-2 text-white"
+					>Close</button
+				>
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Update Modal -->
+{#if showUpdateModal}
+	<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+			<h2 class="mb-4 text-xl font-bold">Update Invoice Status</h2>
+			<label for="status-select" class="block text-sm font-semibold">Change Status:</label>
+			<select id="status-select" bind:value={newStatus} class="mt-2 w-full rounded border p-2">
+				<option value="Unpaid">Unpaid</option>
+				<option value="Paid">Paid</option>
+			</select>
+			<div class="mt-4 flex justify-end gap-2">
+				<button
+					on:click={() => (showUpdateModal = false)}
+					class="rounded bg-gray-500 px-4 py-2 text-white"
+				>
+					Cancel
+				</button>
+				<button
+					on:click={confirmStatusUpdate}
+					class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+				>
+					Confirm
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
