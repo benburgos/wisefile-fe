@@ -1,112 +1,253 @@
 <script>
+	import { onMount } from 'svelte';
 	import { writable } from 'svelte/store';
+	import { auth } from '$lib/stores/auth';
 
-	// Mock case data
-	let caseStats = writable([
-		{ status: 'Open Cases', count: 34 },
-		{ status: 'Pending Cases', count: 12 },
-		{ status: 'Closed Cases', count: 78 },
-		{ status: 'Disputed Cases', count: 5 }
+	// Mock Data
+	let records = writable([
+		{
+			caseNumber: 'ABC123-001',
+			fileType: 'Filing',
+			address: '123 Main St',
+			state: 'AZ',
+			client: 'ABC Properties',
+			revenue: 450,
+			month: 'Jan'
+		},
+		{
+			caseNumber: 'XYZ789-002',
+			fileType: 'Collection',
+			address: '456 Elm St',
+			state: 'CO',
+			client: 'XYZ Realty',
+			revenue: 700,
+			month: 'Feb'
+		},
+		{
+			caseNumber: 'SMITH556-003',
+			fileType: 'Filing',
+			address: '789 Maple St',
+			state: 'TX',
+			client: 'Smith Rentals',
+			revenue: 600,
+			month: 'Jan'
+		},
+		{
+			caseNumber: 'DEF112-004',
+			fileType: 'Collection',
+			address: '222 Oak St',
+			state: 'AZ',
+			client: 'DEF Holdings',
+			revenue: 350,
+			month: 'Mar'
+		},
+		{
+			caseNumber: 'JKL890-005',
+			fileType: 'Filing',
+			address: '777 Pine St',
+			state: 'CO',
+			client: 'JKL Group',
+			revenue: 900,
+			month: 'Feb'
+		},
+		{
+			caseNumber: 'MNO555-006',
+			fileType: 'Collection',
+			address: '999 Birch St',
+			state: 'TX',
+			client: 'MNO Investments',
+			revenue: 500,
+			month: 'Mar'
+		},
+		{
+			caseNumber: 'ABC123-001',
+			fileType: 'Filing',
+			address: '123 Main St',
+			state: 'AZ',
+			client: 'ABC Properties',
+			revenue: 450,
+			month: 'Jan'
+		},
+		{
+			caseNumber: 'XYZ789-002',
+			fileType: 'Collection',
+			address: '456 Elm St',
+			state: 'CO',
+			client: 'XYZ Realty',
+			revenue: 700,
+			month: 'Feb'
+		},
+		{
+			caseNumber: 'SMITH556-003',
+			fileType: 'Filing',
+			address: '789 Maple St',
+			state: 'TX',
+			client: 'Smith Rentals',
+			revenue: 600,
+			month: 'Jan'
+		},
+		{
+			caseNumber: 'DEF112-004',
+			fileType: 'Collection',
+			address: '222 Oak St',
+			state: 'AZ',
+			client: 'DEF Holdings',
+			revenue: 350,
+			month: 'Mar'
+		},
+		{
+			caseNumber: 'JKL890-005',
+			fileType: 'Filing',
+			address: '777 Pine St',
+			state: 'CO',
+			client: 'JKL Group',
+			revenue: 900,
+			month: 'Feb'
+		},
+		{
+			caseNumber: 'MNO555-006',
+			fileType: 'Collection',
+			address: '999 Birch St',
+			state: 'TX',
+			client: 'MNO Investments',
+			revenue: 500,
+			month: 'Mar'
+		}
 	]);
 
-	// Mock revenue data
-	let revenueStats = writable([
-		{ month: 'January', revenue: 12000 },
-		{ month: 'February', revenue: 10500 },
-		{ month: 'March', revenue: 13800 }
+	let metrics = writable([
+		{ title: 'Open Cases', value: 35 },
+		{ title: 'Closed Cases', value: 78 },
+		{ title: 'Dismissed Cases', value: 15 },
+		{ title: 'Appealed Cases', value: 5 }
 	]);
 
-	// Mock user engagement
-	let userActivity = writable([
-		{ metric: 'New Users', value: 34 },
-		{ metric: 'Returning Users', value: 21 },
-		{ metric: 'Average Session Time', value: '4m 32s' },
-		{ metric: 'Messages Sent', value: 128 },
-		{ metric: 'Documents Uploaded', value: 56 }
-	]);
+	let selectedMonth = '';
+	let selectedState = '';
+	let selectedType = '';
+	let userRole = null;
+	let totalAmount = 0;
 
-	// Mock SLA Performance Data
-	let slaPerformance = writable([
-		{ metric: 'Avg Case Resolution Time', value: '12 days' },
-		{ metric: 'Cases Resolved on Time', value: '89%' },
-		{ metric: 'Escalations to Management', value: 7 },
-		{ metric: 'Avg First Response Time', value: '3h 24m' }
-	]);
+	auth.subscribe(({ role }) => {
+		userRole = role || null;
+	});
+
+	// Extract unique values for dropdown filters
+	let uniqueMonths = [];
+	let uniqueStates = [];
+	let uniqueTypes = [];
+
+	onMount(() => {
+		records.update((data) => {
+			uniqueMonths = [...new Set(data.map((item) => item.month))].sort();
+			uniqueStates = [...new Set(data.map((item) => item.state))].sort();
+			uniqueTypes = [...new Set(data.map((item) => item.fileType))].sort();
+			return data;
+		});
+	});
+
+	// Compute filtered records
+	$: filteredRecords = $records.filter(
+		(record) =>
+			(selectedMonth === '' || record.month === selectedMonth) &&
+			(selectedState === '' || record.state === selectedState) &&
+			(selectedType === '' || record.fileType === selectedType)
+	);
+
+	// Compute total revenue/expense
+	$: totalAmount = filteredRecords.reduce((sum, record) => sum + record.revenue, 0);
 </script>
 
-<section class="p-6">
-	<h1 class="mb-4 text-3xl font-bold">Analytics Dashboard</h1>
-
-	<!-- Overview Stats (Grid Layout) -->
-	<div class="mb-6 grid grid-cols-4 gap-4">
-		{#each $caseStats as stat}
-			<div class="rounded bg-blue-100 p-4 shadow-md">
-				<h2 class="text-xl font-bold">{stat.count}</h2>
-				<p class="text-gray-600">{stat.status}</p>
+<section class="p-4 sm:p-6">
+	<!-- General Metrics -->
+	<div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+		{#each $metrics as metric}
+			<div class="rounded-lg bg-[var(--color-primary)] p-4 text-white shadow-md">
+				<p class="text-lg font-semibold">{metric.title}</p>
+				<p class="text-3xl font-bold">{metric.value}</p>
 			</div>
 		{/each}
 	</div>
 
-	<!-- Revenue Table -->
-	<div class="mb-6 rounded bg-white p-4 shadow-md">
-		<h2 class="mb-2 text-xl font-bold">Revenue Overview</h2>
-		<table class="w-full border-collapse">
-			<thead class="bg-gray-200">
-				<tr>
-					<th class="p-3 text-left">Month</th>
-					<th class="p-3 text-left">Revenue</th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each $revenueStats as stat}
-					<tr class="border-t">
-						<td class="p-3">{stat.month}</td>
-						<td class="p-3">${stat.revenue.toLocaleString()}</td>
-					</tr>
+	<!-- Header & Filters (Flexbox) -->
+	<div class="mb-4 flex items-center justify-between">
+		<h1 class="text-3xl font-bold">Revenue by File</h1>
+
+		<!-- Filters -->
+		<div class="flex flex-wrap gap-4">
+			<select bind:value={selectedMonth} class="w-auto min-w-[140px] rounded border px-3 py-2">
+				<option value="">All Months</option>
+				{#each uniqueMonths as month}
+					<option value={month}>{month}</option>
 				{/each}
-			</tbody>
-		</table>
+			</select>
+
+			<select bind:value={selectedState} class="w-auto min-w-[140px] rounded border px-3 py-2">
+				<option value="">All States</option>
+				{#each uniqueStates as state}
+					<option value={state}>{state}</option>
+				{/each}
+			</select>
+
+			<select bind:value={selectedType} class="w-auto min-w-[140px] rounded border px-3 py-2">
+				<option value="">All Types</option>
+				{#each uniqueTypes as type}
+					<option value={type}>{type}</option>
+				{/each}
+			</select>
+
+			<!-- Export Button -->
+			<button class="rounded bg-blue-600 px-4 py-2 text-white shadow-md hover:bg-blue-700">
+				Export
+			</button>
+		</div>
 	</div>
 
-	<!-- User Engagement Data -->
-	<div class="mb-6 rounded bg-white p-4 shadow-md">
-		<h2 class="mb-2 text-xl font-bold">User Engagement</h2>
-		<table class="w-full border-collapse">
-			<thead class="bg-gray-200">
+	<!-- Table -->
+	<div class="mt-4 overflow-hidden rounded-lg border shadow-lg">
+		<!-- Table Header (Fixed) -->
+		<table class="w-full bg-gray-200">
+			<thead class="sticky top-0 bg-gray-200 text-left">
 				<tr>
-					<th class="p-3 text-left">Metric</th>
-					<th class="p-3 text-left">Value</th>
+					<th class="w-[15%] p-3">Case #</th>
+					<th class="w-[12%] p-2">File Type</th>
+					<th class="w-[20%] p-2">Address</th>
+					<th class="w-[10%] p-1">State</th>
+					<th class="w-[23%] p-0">Client</th>
+					<th class="w-[10%] p-0">{userRole === 'admin' ? 'Revenue' : 'Expense'}</th>
+					<th class="w-[10%] p-0">Month</th>
 				</tr>
 			</thead>
-			<tbody>
-				{#each $userActivity as stat}
-					<tr class="border-t">
-						<td class="p-3">{stat.metric}</td>
-						<td class="p-3">{stat.value}</td>
-					</tr>
-				{/each}
-			</tbody>
 		</table>
-	</div>
 
-	<!-- SLA Performance Data -->
-	<div class="rounded bg-white p-4 shadow-md">
-		<h2 class="mb-2 text-xl font-bold">SLA Performance</h2>
-		<table class="w-full border-collapse">
-			<thead class="bg-gray-200">
+		<!-- Scrollable Table Body -->
+		<div class="max-h-[50vh] overflow-auto">
+			<table class="w-full bg-white">
+				<tbody>
+					{#each filteredRecords as record}
+						<tr class="border-t">
+							<td class="w-[15%] p-3">{record.caseNumber}</td>
+							<td class="w-[12%] p-3">{record.fileType}</td>
+							<td class="w-[20%] whitespace-nowrap p-3">{record.address}</td>
+							<td class="w-[10%] p-3">{record.state}</td>
+							<td class="w-[23%] p-3">{record.client}</td>
+							<td class="w-[10%] p-3">${record.revenue}</td>
+							<td class="w-[10%] p-3">{record.month}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+
+		<!-- Table Footer (Fixed) -->
+		<table class="w-full bg-gray-200">
+			<tfoot>
 				<tr>
-					<th class="p-3 text-left">Metric</th>
-					<th class="p-3 text-left">Value</th>
+					<td colspan="7" class="p-3 text-center font-bold">
+						Total {userRole === 'admin' ? 'Revenue' : 'Expenses'}: ${totalAmount}
+					</td>
 				</tr>
-			</thead>
-			<tbody>
-				{#each $slaPerformance as stat}
-					<tr class="border-t">
-						<td class="p-3">{stat.metric}</td>
-						<td class="p-3">{stat.value}</td>
-					</tr>
-				{/each}
-			</tbody>
+			</tfoot>
 		</table>
 	</div>
 </section>
