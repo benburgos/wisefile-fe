@@ -1,26 +1,25 @@
 <script>
-	import { auth } from '$lib/stores/auth';
-	import { goto } from '$app/navigation';
+	import { Tabs, Tab } from '@skeletonlabs/skeleton';
+	import UserManagement from '$lib/components/Admin/UserManagement.svelte';
+	import ClientManagement from '$lib/components/Admin/ClientManagement.svelte';
 
-	let userRole = null;
-
-	// Subscribe to auth store
-	$: auth.subscribe(({ role }) => {
-		userRole = role;
-
-		// Redirect unauthorized users
-		if (userRole !== 'admin') {
-			goto('/dashboard');
-		}
-	});
+	// Active Tab
+	let activeTab = 'users';
 </script>
 
 <section class="p-6">
 	<h1 class="mb-6 text-3xl font-bold">Admin Panel</h1>
 
-	<!-- Placeholder for user management -->
-	<div class="bg-white p-6 rounded shadow-md">
-		<p class="text-gray-600">User management tools will go here...</p>
-	</div>
-</section>
+	<!-- Skeleton UI Tabs -->
+	<Tabs bind:activeTab>
+		<Tab name="users" label="User Management" />
+		<Tab name="clients" label="Client Management" />
+	</Tabs>
 
+	<!-- Render Tab Content -->
+	{#if activeTab === 'users'}
+		<UserManagement />
+	{:else}
+		<ClientManagement />
+	{/if}
+</section>
