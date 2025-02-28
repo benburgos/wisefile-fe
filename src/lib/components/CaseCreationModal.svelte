@@ -16,7 +16,17 @@
 	let caseDetails = {
 		caseType: 'filing',
 		addressId: '',
-		newAddress: {},
+		formattedAddress: '',
+		newAddress: {
+			streetNumber: '',
+			streetName: '',
+			unitNumber: '',
+			postalCode: '',
+			city: '',
+			state: '',
+			jurisdiction: '',
+			gateCode: ''
+		},
 		plaintiff: {
 			name: '',
 			managementCompany: '',
@@ -24,37 +34,6 @@
 			primaryContact: '',
 			primaryContactPhone: '',
 			primaryContactEmail: ''
-		},
-		tenant: {
-			address: {},
-			tenantCode: '',
-			hasUnattachedProperty: false,
-			includeAllOthers: false,
-			tenants: []
-		},
-		rentFeesClaims: {
-			filingPoNumber: '',
-			baseRent: 0,
-			holdover: false,
-			monthsUnpaid: 0,
-			currentMonthUnpaidDate: '',
-			isSubsidized: false,
-			rentalReliefApplication: false,
-			lateFee: 0,
-			lateMonths: 0,
-			filingFee: 0,
-			miscDebts: []
-		},
-		documents: {
-			lease: { file: null, reason: '' },
-			ledger: { file: null, reason: '' },
-			demand: { file: null, reason: '' },
-			ownershipDeed: { file: null, reason: '' },
-			additionalDocs: []
-		},
-		acknowledgment: {
-			rentalReliefConfirmed: false,
-			statementsConfirmed: false
 		}
 	};
 
@@ -89,21 +68,41 @@
 	// Handle Address Selection
 	function handleAddressSelection(event) {
 		const selectedValue = event.target.value;
-		caseDetails.addressId = selectedValue;
-		if (selectedValue !== 'new') {
+
+		if (selectedValue === 'new') {
+			caseDetails.addressId = 'new';
+			caseDetails.selectedFormattedAddress = 'Adding New Address...';
+		} else {
 			let selectedAddress = addressBook.find((a) => a.id == selectedValue);
-			caseDetails.tenant.address = selectedAddress;
+
+			if (selectedAddress) {
+				caseDetails.addressId = selectedAddress.id;
+				caseDetails.selectedFormattedAddress = selectedAddress.formatted;
+				caseDetails.newAddress = { ...selectedAddress }; // Populate for later use
+			}
 		}
 	}
 
-	// Save New Address
+	// Save New Address Function
 	function saveNewAddress() {
 		const newId = addressBook.length + 1;
-		const newFormatted = `${caseDetails.newAddress.streetNumber} ${caseDetails.newAddress.streetName}, ${caseDetails.newAddress.city}, ${caseDetails.newAddress.state}, ${caseDetails.newAddress.postalCode}`;
-		const newEntry = { ...caseDetails.newAddress, id: newId, formatted: newFormatted };
 
+		// Format the address correctly
+		let formattedAddress = `${caseDetails.newAddress.streetNumber} ${caseDetails.newAddress.streetName}`;
+		if (caseDetails.newAddress.unitNumber) {
+			formattedAddress += ` #${caseDetails.newAddress.unitNumber}`; // Append unit number if it exists
+		}
+		formattedAddress += `, ${caseDetails.newAddress.city}, ${caseDetails.newAddress.state}, ${caseDetails.newAddress.postalCode}`;
+
+		// Create new address object
+		const newEntry = { ...caseDetails.newAddress, id: newId, formatted: formattedAddress };
+
+		// Add to Address Book
 		addressBook = [...addressBook, newEntry];
+
+		// Set as selected address
 		caseDetails.addressId = newId;
+		caseDetails.selectedFormattedAddress = formattedAddress;
 		caseDetails.tenant.address = newEntry;
 	}
 </script>
@@ -140,7 +139,7 @@
 				on:change={handleAddressSelection}
 				class="w-full rounded-lg border p-2"
 			>
-				<option value="" disabled selected>Select an option</option>
+				<option value="" disabled>Select an option</option>
 				<option value="new">➕ Add New Address</option>
 				{#each addressBook as address}
 					<option value={address.id}>{address.formatted}</option>
@@ -161,7 +160,7 @@
 								class="w-full rounded-lg border p-2"
 							/>
 
-                            <label for="streetName" class="block font-semibold">Street Name</label>
+							<label for="streetName" class="block font-semibold">Street Name</label>
 							<input
 								id="streetName"
 								bind:value={caseDetails.newAddress.streetName}
@@ -174,8 +173,6 @@
 								bind:value={caseDetails.newAddress.unitNumber}
 								class="w-full rounded-lg border p-2"
 							/>
-
-							
 						</div>
 
 						<!-- Right Column -->
@@ -194,7 +191,7 @@
 								class="w-full rounded-lg border p-2"
 							/>
 
-                            <label for="postalCode" class="mt-2 block font-semibold">Zip / Postal Code</label>
+							<label for="postalCode" class="mt-2 block font-semibold">Zip / Postal Code</label>
 							<input
 								id="postalCode"
 								bind:value={caseDetails.newAddress.postalCode}
@@ -222,17 +219,46 @@
 			{/if}
 
 			<!-- Navigation -->
-			{#if caseDetails.addressId !== 'new'}
+			{#if caseDetails.addressId !== 'new' && caseDetails.addressId !== ''}
 				<div class="mt-6 flex justify-between">
 					<button
 						on:click={() => (currentStep = 1)}
-						class="rounded bg-gray-500 px-4 py-2 text-white">Cancel</button
+						class="rounded bg-gray-500 px-4 py-2 text-white"
 					>
-					<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
-						>Next</button
+						Cancel
+					</button>
+					<button
+						on:click={nextStep}
+						class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
 					>
+						Next
+					</button>
 				</div>
 			{/if}
+		{:else if currentStep === 2}
+			<h2 class="mb-4 text-xl font-bold">Plaintiff Details</h2>
+
+			<label for="plaintiff-name" class="block font-semibold">Plaintiff Name</label>
+			<input
+				id="plaintiff-name"
+				bind:value={caseDetails.plaintiff.name}
+				class="w-full rounded-lg border p-2"
+			/>
+
+			<label for="management-company" class="block font-semibold">Management Company</label>
+			<input
+				id="management-company"
+				bind:value={caseDetails.plaintiff.managementCompany}
+				class="w-full rounded-lg border p-2"
+			/>
+
+			<!-- Navigation -->
+			<div class="mt-6 flex justify-between">
+				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
+				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
+					>Next</button
+				>
+			</div>
 		{/if}
 	</div>
 </div>
