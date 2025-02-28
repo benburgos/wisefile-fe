@@ -123,7 +123,7 @@
 
 		<!-- Step Content -->
 		{#if currentStep === 1}
-			<h2 class="mb-4 text-xl font-bold">Select Case Type & Address</h2>
+			<h2 class="mb-4 text-xl font-bold">Create New Case</h2>
 
 			<!-- Case Type -->
 			<label for="case-type" class="mb-2 block font-semibold">Case Type</label>
