@@ -1,228 +1,238 @@
 <script>
-	import { writable } from 'svelte/store';
+	import { onMount } from 'svelte';
 
-	// Step Management
-	let currentStep = writable(0);
-	const steps = ['Plaintiff Details', 'Defendant Details', 'Case Details', 'Review & Submit'];
+	// Step Handling
+	let currentStep = 1;
+	let totalSteps = 6;
 
-	// Form Data Store
-	let caseData = writable({
-		plaintiff: { name: '', address: '', phone: '' },
-		defendant: { name: '', address: '', phone: '' },
-		caseDetails: { caseType: '', state: '', court: '', filingDate: '' },
-		attachments: [],
-		status: 'Draft' // Initial status is "Draft"
-	});
-
-	// Navigation Functions
 	function nextStep() {
-		currentStep.update((step) => Math.min(step + 1, steps.length - 1));
+		if (currentStep < totalSteps) currentStep++;
 	}
-
 	function prevStep() {
-		currentStep.update((step) => Math.max(step - 1, 0));
+		if (currentStep > 1) currentStep--;
 	}
 
-	function closeModal() {
-		currentStep.set(0);
+	// Case Model (Stored in DB Later)
+	let caseDetails = {
+		caseType: 'filing',
+		addressId: '',
+		newAddress: {},
+		plaintiff: {
+			name: '',
+			managementCompany: '',
+			propertyId: '',
+			primaryContact: '',
+			primaryContactPhone: '',
+			primaryContactEmail: ''
+		},
+		tenant: {
+			address: {},
+			tenantCode: '',
+			hasUnattachedProperty: false,
+			includeAllOthers: false,
+			tenants: []
+		},
+		rentFeesClaims: {
+			filingPoNumber: '',
+			baseRent: 0,
+			holdover: false,
+			monthsUnpaid: 0,
+			currentMonthUnpaidDate: '',
+			isSubsidized: false,
+			rentalReliefApplication: false,
+			lateFee: 0,
+			lateMonths: 0,
+			filingFee: 0,
+			miscDebts: []
+		},
+		documents: {
+			lease: { file: null, reason: '' },
+			ledger: { file: null, reason: '' },
+			demand: { file: null, reason: '' },
+			ownershipDeed: { file: null, reason: '' },
+			additionalDocs: []
+		},
+		acknowledgment: {
+			rentalReliefConfirmed: false,
+			statementsConfirmed: false
+		}
+	};
+
+	// Address Book (Updated Model)
+	let addressBook = [
+		{
+			id: 1,
+			streetNumber: '11523',
+			streetName: 'W. Orange Blossom Ln.',
+			unitNumber: '',
+			postalCode: '85253',
+			city: 'Avondale',
+			state: 'AZ',
+			jurisdiction: 'Maricopa County',
+			gateCode: '',
+			formatted: '11523 W. Orange Blossom Ln., Avondale, AZ, 85253'
+		},
+		{
+			id: 2,
+			streetNumber: '742',
+			streetName: 'Evergreen Terrace',
+			unitNumber: '',
+			postalCode: '62704',
+			city: 'Springfield',
+			state: 'IL',
+			jurisdiction: 'Sangamon County',
+			gateCode: '',
+			formatted: '742 Evergreen Terrace, Springfield, IL, 62704'
+		}
+	];
+
+	// Handle Address Selection
+	function handleAddressSelection(event) {
+		const selectedValue = event.target.value;
+		caseDetails.addressId = selectedValue;
+		if (selectedValue !== 'new') {
+			let selectedAddress = addressBook.find((a) => a.id == selectedValue);
+			caseDetails.tenant.address = selectedAddress;
+		}
 	}
 
-	// Save Draft Function
-	function saveDraft() {
-		const draftData = $caseData;
-		console.log('Saving Draft:', draftData);
-		alert('Draft saved! (This will be an API call in the future)');
-	}
+	// Save New Address
+	function saveNewAddress() {
+		const newId = addressBook.length + 1;
+		const newFormatted = `${caseDetails.newAddress.streetNumber} ${caseDetails.newAddress.streetName}, ${caseDetails.newAddress.city}, ${caseDetails.newAddress.state}, ${caseDetails.newAddress.postalCode}`;
+		const newEntry = { ...caseDetails.newAddress, id: newId, formatted: newFormatted };
 
-	// **Final Submission Function**
-	function submitCase() {
-		caseData.update((data) => {
-			data.status = 'Submitted'; // Change status
-			return data;
-		});
-
-		console.log('Submitting Case:', $caseData);
-		alert('Case submitted successfully!'); // Placeholder for backend API call
-
-		closeModal();
-	}
-
-	// **File Upload Functions**
-	function handleFileUpload(event) {
-		const files = Array.from(event.target.files);
-		caseData.update((data) => {
-			data.attachments = [...data.attachments, ...files.map((file) => file.name)];
-			return data;
-		});
-	}
-
-	function removeAttachment(index) {
-		caseData.update((data) => {
-			data.attachments.splice(index, 1);
-			return data;
-		});
+		addressBook = [...addressBook, newEntry];
+		caseDetails.addressId = newId;
+		caseDetails.tenant.address = newEntry;
 	}
 </script>
 
-<!-- Modal -->
+<!-- Case Creation Modal -->
 <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-	<div class="w-full max-w-2xl rounded-lg bg-white p-6 shadow-lg">
-		<!-- Step Indicator -->
-		<div class="mb-4 flex justify-between text-sm font-semibold">
-			{#each steps as step, index}
-				<div
-					class="flex items-center gap-2"
-					class:text-gray-900={index === $currentStep}
-					class:text-gray-400={index !== $currentStep}
-				>
-					<span class="flex h-6 w-6 items-center justify-center rounded-full border"
-						>{index + 1}</span
-					>
-					{step}
-				</div>
-			{/each}
+	<div class="w-full max-w-4xl rounded-lg bg-white p-6 shadow-lg">
+		<!-- Progress Bar -->
+		<div class="mb-4 w-full rounded-full bg-gray-200">
+			<div
+				class="rounded-full bg-[var(--color-primary)] p-1 text-center text-xs leading-none text-white"
+				style="width: {(currentStep / totalSteps) * 100}%"
+			>
+				Step {currentStep} of {totalSteps}
+			</div>
 		</div>
 
 		<!-- Step Content -->
-		<div class="min-h-[300px]">
-			{#if $currentStep === 0}
-				<!-- Plaintiff Details -->
-				<h2 class="mb-2 text-xl font-bold">Plaintiff Details</h2>
-				<label class="mt-2 block">Full Name</label>
-				<input
-					type="text"
-					bind:value={$caseData.plaintiff.name}
-					class="w-full rounded border p-2"
-				/>
+		{#if currentStep === 1}
+			<h2 class="mb-4 text-xl font-bold">Select Case Type & Address</h2>
 
-				<label class="mt-2 block">Address</label>
-				<input
-					type="text"
-					bind:value={$caseData.plaintiff.address}
-					class="w-full rounded border p-2"
-				/>
+			<!-- Case Type -->
+			<label for="case-type" class="mb-2 block font-semibold">Case Type</label>
+			<select id="case-type" bind:value={caseDetails.caseType} class="w-full rounded-lg border p-2">
+				<option value="filing">Filing</option>
+				<option value="collection" disabled>Collection (Coming Soon)</option>
+			</select>
 
-				<label class="mt-2 block">Phone Number</label>
-				<input
-					type="text"
-					bind:value={$caseData.plaintiff.phone}
-					class="w-full rounded border p-2"
-				/>
-			{:else if $currentStep === 1}
-				<!-- Defendant Details -->
-				<h2 class="mb-2 text-xl font-bold">Defendant Details</h2>
-				<label class="mt-2 block">Full Name</label>
-				<input
-					type="text"
-					bind:value={$caseData.defendant.name}
-					class="w-full rounded border p-2"
-				/>
+			<!-- Address Selection -->
+			<label for="address-select" class="mb-2 mt-4 block font-semibold">Property Address</label>
+			<select
+				id="address-select"
+				bind:value={caseDetails.addressId}
+				on:change={handleAddressSelection}
+				class="w-full rounded-lg border p-2"
+			>
+				<option value="" disabled selected>Select an option</option>
+				<option value="new">➕ Add New Address</option>
+				{#each addressBook as address}
+					<option value={address.id}>{address.formatted}</option>
+				{/each}
+			</select>
 
-				<label class="mt-2 block">Address</label>
-				<input
-					type="text"
-					bind:value={$caseData.defendant.address}
-					class="w-full rounded border p-2"
-				/>
+			<!-- New Address Form -->
+			{#if caseDetails.addressId === 'new'}
+				<div class="mt-4 rounded-lg bg-gray-100 p-4">
+					<h3 class="mb-2 text-lg font-semibold">Add New Address</h3>
+					<div class="grid grid-cols-2 gap-4">
+						<!-- Left Column -->
+						<div>
+							<label for="streetNumber" class="block font-semibold">Street Number</label>
+							<input
+								id="streetNumber"
+								bind:value={caseDetails.newAddress.streetNumber}
+								class="w-full rounded-lg border p-2"
+							/>
 
-				<label class="mt-2 block">Phone Number</label>
-				<input
-					type="text"
-					bind:value={$caseData.defendant.phone}
-					class="w-full rounded border p-2"
-				/>
-			{:else if $currentStep === 2}
-				<!-- Case Details -->
-				<h2 class="mb-2 text-xl font-bold">Case Details</h2>
-				<label class="mt-2 block">Case Type</label>
-				<select bind:value={$caseData.caseDetails.caseType} class="w-full rounded border p-2">
-					<option value="Filing">Filing</option>
-					<option value="Collection">Collection</option>
-				</select>
+                            <label for="streetName" class="block font-semibold">Street Name</label>
+							<input
+								id="streetName"
+								bind:value={caseDetails.newAddress.streetName}
+								class="w-full rounded-lg border p-2"
+							/>
 
-				<label class="mt-2 block">State</label>
-				<select bind:value={$caseData.caseDetails.state} class="w-full rounded border p-2">
-					<option value="AZ">Arizona</option>
-					<option value="CO">Colorado</option>
-					<option value="NV">Nevada</option>
-				</select>
+							<label for="unitNumber" class="mt-2 block font-semibold">Unit Number</label>
+							<input
+								id="unitNumber"
+								bind:value={caseDetails.newAddress.unitNumber}
+								class="w-full rounded-lg border p-2"
+							/>
 
-				<label class="mt-2 block">Court</label>
-				<input
-					type="text"
-					bind:value={$caseData.caseDetails.court}
-					class="w-full rounded border p-2"
-				/>
+							
+						</div>
 
-				<label class="mt-2 block">Filing Date</label>
-				<input
-					type="date"
-					bind:value={$caseData.caseDetails.filingDate}
-					class="w-full rounded border p-2"
-				/>
+						<!-- Right Column -->
+						<div>
+							<label for="city" class="mt-2 block font-semibold">City</label>
+							<input
+								id="city"
+								bind:value={caseDetails.newAddress.city}
+								class="w-full rounded-lg border p-2"
+							/>
 
-				<!-- File Upload Section -->
-				<label class="mt-4 block font-bold">Upload Documents</label>
-				<input
-					type="file"
-					multiple
-					on:change={handleFileUpload}
-					class="w-full rounded border p-2"
-				/>
+							<label for="state" class="mt-2 block font-semibold">State</label>
+							<input
+								id="state"
+								bind:value={caseDetails.newAddress.state}
+								class="w-full rounded-lg border p-2"
+							/>
 
-				<!-- File Preview List -->
-				{#if $caseData.attachments.length > 0}
-					<div class="mt-2 rounded bg-gray-100 p-2">
-						<p class="font-semibold">Uploaded Files:</p>
-						<ul>
-							{#each $caseData.attachments as file, index}
-								<li class="flex items-center justify-between">
-									<span>{file}</span>
-									<button
-										on:click={() => removeAttachment(index)}
-										class="text-sm font-semibold text-red-500"
-									>
-										Remove
-									</button>
-								</li>
-							{/each}
-						</ul>
+                            <label for="postalCode" class="mt-2 block font-semibold">Zip / Postal Code</label>
+							<input
+								id="postalCode"
+								bind:value={caseDetails.newAddress.postalCode}
+								class="w-full rounded-lg border p-2"
+							/>
+						</div>
 					</div>
-				{/if}
-			{:else}
-				<!-- Review & Submit -->
-				<h2 class="mb-2 text-xl font-bold">Review & Submit</h2>
-				<p>Review all details before submission.</p>
-				<pre class="rounded bg-gray-100 p-2">{JSON.stringify($caseData, null, 2)}</pre>
+
+					<!-- Save / Discard Buttons -->
+					<div class="mt-4 flex justify-between">
+						<button
+							on:click={() => (caseDetails.addressId = '')}
+							class="rounded bg-gray-500 px-4 py-2 text-white"
+						>
+							Discard
+						</button>
+						<button
+							on:click={saveNewAddress}
+							class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
+						>
+							Save & Continue
+						</button>
+					</div>
+				</div>
 			{/if}
-		</div>
 
-		<!-- Navigation Buttons -->
-		<div class="mt-4 flex justify-between">
-			<button
-				on:click={prevStep}
-				class="rounded bg-gray-400 px-4 py-2 text-white disabled:opacity-50"
-				disabled={$currentStep === 0}
-			>
-				Back
-			</button>
-			<button
-				on:click={nextStep}
-				class="rounded bg-blue-600 px-4 py-2 text-white"
-				disabled={$currentStep === steps.length - 1}
-			>
-				Next
-			</button>
-		</div>
-
-		<!-- Save Draft & Submit Buttons -->
-		<div class="mt-4 flex justify-between">
-			<button on:click={saveDraft} class="rounded bg-yellow-500 px-4 py-2 text-white">
-				Save Draft
-			</button>
-			<button on:click={submitCase} class="rounded bg-green-600 px-4 py-2 text-white">
-				Submit Case
-			</button>
-		</div>
+			<!-- Navigation -->
+			{#if caseDetails.addressId !== 'new'}
+				<div class="mt-6 flex justify-between">
+					<button
+						on:click={() => (currentStep = 1)}
+						class="rounded bg-gray-500 px-4 py-2 text-white">Cancel</button
+					>
+					<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
+						>Next</button
+					>
+				</div>
+			{/if}
+		{/if}
 	</div>
 </div>
