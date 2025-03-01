@@ -4,7 +4,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
-	import { getStoredData } from '$lib/utils/storage';
+	import { getStoredData, saveToLocalStorage } from '$lib/utils/storage';
+	import seedData from '$lib/seed.js';
 	import SideNav from '$lib/components/Nav/SideNav.svelte';
 
 	let isAuthenticated = null;
@@ -17,6 +18,11 @@
 			isAuthenticated = authStatus;
 			userRole = role;
 		});
+		const existingData = getStoredData();
+		if (!existingData) {
+			saveToLocalStorage(seedData);
+			console.log('Seed data loaded into localStorage');
+		}
 	});
 
 	// Delay before redirecting to avoid flicker
@@ -38,10 +44,10 @@
 
 <div class="flex h-screen">
 	{#if isAuthenticated}
-		<aside class="h-screen w-64 bg-gray-800 text-white fixed top-0 left-0 flex flex-col">
+		<aside class="fixed left-0 top-0 flex h-screen w-64 flex-col bg-gray-800 text-white">
 			<SideNav />
 		</aside>
-		<main class="flex-1 p-6 ml-64 overflow-auto">
+		<main class="ml-64 flex-1 overflow-auto p-6">
 			<slot />
 		</main>
 	{:else}
