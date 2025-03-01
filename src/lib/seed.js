@@ -63,6 +63,8 @@ export const seedData = {
 			status: 'Demand Posted',
 			subStatus: 'Pending Expiration',
 			deleted: false,
+			courtName: 'Maricopa County Civil Court',
+			courtCaseNumber: 'MC-2025-00123',
 			formattedAddress: '11523 W. Orange Blossom Ln., Avondale, AZ, 85253',
 			newAddress: {
 				streetNumber: '11523',
@@ -90,7 +92,10 @@ export const seedData = {
 			fees: [
 				{ type: 'Filing Fee', amount: 450, description: 'Fee for creating the filing' },
 				{ type: 'Late Fee', amount: 100, description: 'Unpaid rent penalty' }
-			]
+			],
+			activityLog: [{ timestamp: '2025-02-28T12:30:00Z', user: 'Bob Smith', action: 'Filed case' }],
+			internalNotes: [],
+			relatedCases: ['case-002'] // Related by same propertyId & tenantCode
 		},
 		{
 			_id: 'case-002',
@@ -100,40 +105,45 @@ export const seedData = {
 			status: 'Eviction Service',
 			subStatus: 'Notice Delivered',
 			deleted: false,
-			formattedAddress: '789 Elm St., Scottsdale, AZ, 85251',
+			courtName: 'Maricopa County Civil Court',
+			courtCaseNumber: 'MC-2025-00345',
+			formattedAddress: '11523 W. Orange Blossom Ln., Avondale, AZ, 85253',
 			newAddress: {
-				streetNumber: '789',
-				streetName: 'Elm St.',
-				unitNumber: 'Apt 3B',
-				postalCode: '85251',
-				city: 'Scottsdale',
+				streetNumber: '11523',
+				streetName: 'W. Orange Blossom Ln.',
+				unitNumber: '',
+				postalCode: '85253',
+				city: 'Avondale',
 				state: 'AZ',
 				jurisdiction: 'Maricopa County',
-				gateCode: '4321'
+				gateCode: '1234'
 			},
 			plaintiff: {
 				name: 'ABC Holdings LLC',
-				managementCompany: 'ABC Asset Group',
-				propertyId: 'prop-003',
+				managementCompany: 'ABC Property Management',
+				propertyId: 'prop-001',
 				primaryContact: 'Bob Smith',
 				primaryContactPhone: '555-6789',
 				primaryContactEmail: 'bob@example.com'
 			},
 			tenant: {
-				address: '789 Elm St., Scottsdale, AZ, 85251',
-				tenantCode: 'T003',
-				tenants: [{ firstName: 'Michael', lastName: 'Brown', tenantCode: 'T003' }]
+				address: '11523 W. Orange Blossom Ln., Avondale, AZ, 85253',
+				tenantCode: 'T001',
+				tenants: [{ firstName: 'John', lastName: 'Doe', tenantCode: 'T001' }]
 			},
 			fees: [
 				{ type: 'Filing Fee', amount: 450, description: 'Fee for creating the filing' },
 				{ type: 'Eviction Processing Fee', amount: 300, description: 'Eviction service fee' }
 			],
-			rentFeesClaims: {
-				baseRent: 1700,
-				monthsUnpaid: 2,
-				lateFee: 90,
-				miscDebts: [{ type: 'Maintenance Repair', amount: 150 }]
-			}
+			activityLog: [
+				{
+					timestamp: '2025-03-01T09:00:00Z',
+					user: 'Admin',
+					action: 'Updated sub-status to Notice Delivered'
+				}
+			],
+			internalNotes: [],
+			relatedCases: ['case-001'] // Related by same propertyId & tenantCode
 		},
 		{
 			_id: 'case-003',
@@ -143,6 +153,8 @@ export const seedData = {
 			status: 'Court Date',
 			subStatus: 'Scheduled',
 			deleted: false,
+			courtName: 'Pima County Civil Court',
+			courtCaseNumber: 'PC-2025-00456',
 			formattedAddress: '4567 Maple Ave., Glendale, AZ, 85301',
 			newAddress: {
 				streetNumber: '4567',
@@ -171,12 +183,9 @@ export const seedData = {
 				{ type: 'Filing Fee', amount: 450, description: 'Fee for creating the filing' },
 				{ type: 'Court Processing Fee', amount: 250, description: 'Court administrative cost' }
 			],
-			rentFeesClaims: {
-				baseRent: 1850,
-				monthsUnpaid: 4,
-				lateFee: 150,
-				miscDebts: [{ type: 'Legal Fee', amount: 300 }]
-			}
+			activityLog: [],
+			internalNotes: [],
+			relatedCases: [] // No related cases
 		},
 		{
 			_id: 'case-004',
@@ -186,6 +195,8 @@ export const seedData = {
 			status: 'Dismissed – Paid',
 			subStatus: 'Resolved',
 			deleted: false,
+			courtName: 'Pima County Civil Court',
+			courtCaseNumber: 'PC-2025-00567',
 			formattedAddress: '9012 Birch Rd., Tucson, AZ, 85710',
 			newAddress: {
 				streetNumber: '9012',
@@ -211,12 +222,9 @@ export const seedData = {
 				tenants: [{ firstName: 'David', lastName: 'Smith', tenantCode: 'T005' }]
 			},
 			fees: [{ type: 'Filing Fee', amount: 450, description: 'Fee for creating the filing' }],
-			rentFeesClaims: {
-				baseRent: 1400,
-				monthsUnpaid: 1,
-				lateFee: 80,
-				miscDebts: [{ type: 'Key Replacement', amount: 50 }]
-			}
+			activityLog: [],
+			internalNotes: [],
+			relatedCases: [] // No related cases
 		}
 	]
 };
