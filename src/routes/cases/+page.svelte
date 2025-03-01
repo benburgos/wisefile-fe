@@ -1,180 +1,79 @@
 <script>
+	import { onMount } from 'svelte';
+	import { getStoredData, saveToLocalStorage } from '$lib/utils/storage';
 	import { auth } from '$lib/stores/auth';
+	import CaseCreationModal from '$lib/components/CaseCreationModal.svelte';
 
-	let files = [
-		{
-			id: 'abc123-001',
-			fileName: 'ABC123-001',
-			fileType: 'Filing',
-			status: 'Open',
-			subStatus: 'Awaiting Payment',
-			address: '123 Main St',
-			tenant: 'John Doe',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
-			attorneyName: 'Jane Smith',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440001',
-			assignedTo: 'Michael Johnson',
-			clientId: 'ABC123'
-		},
-		{
-			id: 'abc123-002',
-			fileName: 'ABC123-002',
-			fileType: 'Filing',
-			status: 'Closed',
-			subStatus: 'Resolved - Paid',
-			address: '456 Elm St',
-			tenant: 'David Green',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
-			attorneyName: 'Jane Smith',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440003',
-			assignedTo: 'Sarah Williams',
-			clientId: 'ABC123'
-		},
-		{
-			id: 'abc123-003',
-			fileName: 'ABC123-003',
-			fileType: 'Case',
-			status: 'Pending',
-			subStatus: 'Under Review',
-			address: '789 Maple St',
-			tenant: 'Alice Brown',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440002',
-			attorneyName: 'Jane Smith',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440004',
-			assignedTo: 'Liam Carter',
-			clientId: 'ABC123'
-		},
-		{
-			id: 'xyz789-001',
-			fileName: 'XYZ789-001',
-			fileType: 'Filing',
-			status: 'Open',
-			subStatus: 'Awaiting Court Date',
-			address: '222 Oak St',
-			tenant: 'Olivia Williams',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440005',
-			attorneyName: 'Lisa Wilson',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440006',
-			assignedTo: 'Emily Watson',
-			clientId: 'XYZ789'
-		},
-		{
-			id: 'xyz789-002',
-			fileName: 'XYZ789-002',
-			fileType: 'Case',
-			status: 'Open',
-			subStatus: 'Hearing Scheduled',
-			address: '555 Pine St',
-			tenant: 'Emma Thompson',
-			attorney_uuid: '550e8400-e29b-41d4-a716-446655440006',
-			attorneyName: 'Samantha Clark',
-			ops_uuid: '550e8400-e29b-41d4-a716-446655440007',
-			assignedTo: 'Kyle Thompson',
-			clientId: 'XYZ789'
-		}
-	];
-
-	let filteredFiles = [...files];
+	let cases = [];
+	let showModal = false;
 	let userRole = null;
 	let userClientId = null;
-	let userAttorneyUUID = null;
-	let searchQuery = '';
 
-	// Subscribe to auth store
-	auth.subscribe(({ role, clientId, uuid }) => {
-		userRole = role;
-		userClientId = clientId || null;
-		userAttorneyUUID = uuid || null;
-		filterFiles();
+	// Fetch stored data on mount
+	onMount(() => {
+		const storedData = getStoredData();
+		cases = storedData.caseDetails.filter((c) => !c.deleted);
+
+		// Get user role and company ID
+		auth.subscribe(({ role, company_id }) => {
+			userRole = role;
+			userClientId = company_id;
+		});
 	});
 
-	function filterFiles() {
-		filteredFiles = files.filter((file) => {
-			// Role-based filtering
-			if (userRole === 'client' && file.clientId !== userClientId) return false;
-			if (userRole === 'lawyer' && file.attorney_uuid !== userAttorneyUUID) return false;
-
-			// Search filter - Match anything in the filtered list
-			const searchText = searchQuery.toLowerCase();
-			const searchMatch =
-				searchQuery === '' ||
-				Object.values(file).some((value) => String(value).toLowerCase().includes(searchText));
-
-			return searchMatch;
-		});
+	// Soft delete case
+	function deleteCase(caseId) {
+		if (confirm('Are you sure you want to remove this case?')) {
+			cases = cases.map((c) =>
+				c._id === caseId ? { ...c, deleted: true } : c
+			);
+			saveToLocalStorage({ ...getStoredData(), caseDetails: cases });
+		}
 	}
 </script>
 
 <section class="p-6">
-	<!-- Header Section -->
-	<div class="mb-6 flex items-center justify-between">
+	<div class="mb-4 flex items-center justify-between">
 		<h1 class="text-3xl font-bold">Cases</h1>
-
-		<!-- New Filing or Case Button (Only Clients, Ops, and Admins) -->
-		{#if userRole !== 'lawyer'}
-			<button
-				on:click={() => (showNewCaseModal = true)}
-				class="rounded bg-blue-500 px-6 py-3 font-bold text-white shadow-md hover:bg-blue-600"
-			>
-				New Filing or Case
-			</button>
-		{/if}
+		<button on:click={() => (showModal = true)} class="rounded-lg bg-[var(--color-primary)] px-6 py-2 text-white">
+			New Filing or Collection
+		</button>
 	</div>
 
-	<!-- Search Filter -->
-	<div class="mb-4">
-		<label for="search-filter" class="text-lg font-semibold">Search:</label>
-		<input
-			id="search-filter"
-			type="text"
-			bind:value={searchQuery}
-			placeholder="Search anything..."
-			class="w-full rounded border px-3 py-2 text-black"
-			on:input={filterFiles}
-		/>
-	</div>
-
-	<!-- Cases Table -->
-	<div class="overflow-x-auto rounded bg-white shadow-md">
-		{#if filteredFiles.length > 0}
-			<table class="w-full border-collapse">
-				<thead class="bg-gray-200">
-					<tr>
-						<th class="p-3 text-left">File #</th>
-						<th class="p-3 text-left">File Type</th>
-						<th class="p-3 text-left">Status</th>
-						<th class="p-3 text-left">Sub-Status</th>
-						<th class="p-3 text-left">Address</th>
-						<th class="p-3 text-left">Tenant</th>
-						<th class="p-3 text-left">Attorney</th>
-						<th class="p-3 text-left">Assignee</th>
+	<div class="overflow-x-auto rounded-lg border">
+		<table class="w-full bg-white shadow-md">
+			<thead class="bg-gray-200">
+				<tr>
+					<th class="p-3 text-left">Client</th>
+					<th class="p-3 text-left">Case #</th>
+					<th class="p-3 text-left">Type</th>
+					<th class="p-3 text-left">Status</th>
+					<th class="p-3 text-left">State</th>
+					<th class="p-3 text-left">Balance</th>
+					<th class="p-3 text-left">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each cases as caseDetail}
+					<tr class="border-t">
+						<td class="p-3">{caseDetail.plaintiff.name}</td>
+						<td class="p-3">{caseDetail.caseNumber}</td>
+						<td class="p-3">{caseDetail.caseType}</td>
+						<td class="p-3">{caseDetail.status}</td>
+						<td class="p-3">{caseDetail.newAddress.state}</td>
+						<td class="p-3">${caseDetail.fees.reduce((acc, f) => acc + f.amount, 0)}</td>
+						<td class="p-3">
+							<button on:click={() => deleteCase(caseDetail._id)} class="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-700">
+								Delete
+							</button>
+						</td>
 					</tr>
-				</thead>
-				<tbody>
-					{#each filteredFiles as file}
-						<tr class="cursor-pointer border-t hover:bg-gray-100">
-							<td class="p-3">
-								<a href={`/cases/${file.id}`} class="text-blue-500 underline">
-									{file.fileName}
-								</a>
-							</td>
-							<td class="p-3">{file.fileType}</td>
-							<td class="p-3">{file.status}</td>
-							<td class="p-3">{file.subStatus}</td>
-							<td class="p-3">{file.address}</td>
-							<td class="p-3">{file.tenant}</td>
-							<td class="p-3">{file.attorneyName}</td>
-							<td class="p-3">{file.assignedTo}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		{:else}
-			<!-- Placeholder for No Cases Found -->
-			<div class="flex flex-col items-center justify-center p-6 text-gray-500">
-				<p class="text-lg font-semibold">No cases found.</p>
-				<p class="text-sm">Try adjusting your search or submitting a new case.</p>
-			</div>
-		{/if}
+				{/each}
+			</tbody>
+		</table>
 	</div>
+
+	{#if showModal}
+		<CaseCreationModal on:close={() => (showModal = false)} />
+	{/if}
 </section>
