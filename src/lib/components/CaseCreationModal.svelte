@@ -43,6 +43,19 @@
 			hasUnattachedProperty: false,
 			includeAllOthers: false,
 			tenants: []
+		},
+		rentFeesClaims: {
+			filingPoNumber: '',
+			baseRent: 0,
+			holdover: false,
+			monthsUnpaid: 0,
+			currentMonthUnpaidDate: '',
+			isSubsidized: false,
+			rentalReliefApplication: false,
+			lateFee: 0,
+			lateMonths: 0,
+			filingFee: 0,
+			miscDebts: []
 		}
 	};
 
@@ -165,14 +178,24 @@
 		caseDetails.tenant.tenants = caseDetails.tenant.tenants.filter((_, i) => i !== index);
 	}
 
+	let newDebt = { description: '', amount: 0 };
+
 	// Add Debt
 	function addDebt() {
-		caseDetails.rentFeesClaims.miscDebts.push({ description: '', amount: 0 });
+		if (newDebt.description.trim() !== '' && newDebt.amount > 0) {
+			caseDetails.rentFeesClaims.miscDebts = [
+				...caseDetails.rentFeesClaims.miscDebts,
+				{ ...newDebt }
+			];
+			newDebt = { description: '', amount: 0 }; // Reset fields
+		}
 	}
 
 	// Remove Debt
 	function removeDebt(index) {
-		caseDetails.rentFeesClaims.miscDebts.splice(index, 1);
+		caseDetails.rentFeesClaims.miscDebts = caseDetails.rentFeesClaims.miscDebts.filter(
+			(_, i) => i !== index
+		);
 	}
 </script>
 
@@ -583,81 +606,89 @@
 				class="w-full rounded-lg border p-2"
 			/>
 
-			<!-- Base Rent -->
-			<label for="base-rent" class="block font-semibold">Base Rent ($)</label>
-			<input
-				id="base-rent"
-				type="number"
-				bind:value={caseDetails.rentFeesClaims.baseRent}
-				class="w-full rounded-lg border p-2"
-			/>
+			<!-- Rent Section -->
+			<h3 class="mt-4 text-lg font-semibold">Rent</h3>
+			<div class="grid grid-cols-2 gap-4">
+				<div>
+					<label for="base-rent" class="block font-semibold">Base Rent / Month ($)</label>
+					<input
+						id="base-rent"
+						type="number"
+						bind:value={caseDetails.rentFeesClaims.baseRent}
+						class="w-full rounded-lg border p-2"
+					/>
 
-			<!-- Holdover Rent -->
-			<label class="block font-semibold">Holdover Rent?</label>
-			<div class="mb-4 flex gap-4">
-				<label class="inline-flex items-center" for="holdover-yes">
+					<label for="months-unpaid" class="block font-semibold">Months Unpaid</label>
 					<input
-						id="holdover-yes"
-						type="radio"
-						bind:group={caseDetails.rentFeesClaims.holdover}
-						value={true}
+						id="months-unpaid"
+						type="number"
+						bind:value={caseDetails.rentFeesClaims.monthsUnpaid}
+						class="w-full rounded-lg border p-2"
 					/>
-					<span class="ml-2">Yes</span>
-				</label>
-				<label class="inline-flex items-center" for="holdover-no">
+
+					<label for="unpaid-date" class="block font-semibold">Date of Current Month Unpaid</label>
 					<input
-						id="holdover-no"
-						type="radio"
-						bind:group={caseDetails.rentFeesClaims.holdover}
-						value={false}
+						id="unpaid-date"
+						type="date"
+						bind:value={caseDetails.rentFeesClaims.currentMonthUnpaidDate}
+						class="w-full rounded-lg border p-2"
 					/>
-					<span class="ml-2">No</span>
-				</label>
+				</div>
+
+				<div>
+					<label for="holdover" class="block font-semibold">Holdover?</label>
+					<div class="mb-4 flex gap-4">
+						<label class="inline-flex items-center" for="holdover-yes">
+							<input
+								id="holdover-yes"
+								type="radio"
+								bind:group={caseDetails.rentFeesClaims.holdover}
+								value={true}
+							/>
+							<span class="ml-2">Yes</span>
+						</label>
+						<label class="inline-flex items-center" for="holdover-no">
+							<input
+								id="holdover-no"
+								type="radio"
+								bind:group={caseDetails.rentFeesClaims.holdover}
+								value={false}
+							/>
+							<span class="ml-2">No</span>
+						</label>
+					</div>
+
+					<label for="subsidized" class="block font-semibold">Is Rent Subsidized?</label>
+
+					<div class="mb-4 flex gap-4">
+						<label class="inline-flex items-center" for="subsidized-yes">
+							<input
+								id="subsidized-yes"
+								type="radio"
+								bind:group={caseDetails.rentFeesClaims.isSubsidized}
+								value={true}
+							/>
+							<span class="ml-2">Yes</span>
+						</label>
+						<label class="inline-flex items-center" for="subsidized-no">
+							<input
+								id="subsidized-no"
+								type="radio"
+								bind:group={caseDetails.rentFeesClaims.isSubsidized}
+								value={false}
+							/>
+							<span class="ml-2">No</span>
+						</label>
+					</div>
+				</div>
 			</div>
 
-			<!-- Months Unpaid -->
-			<label for="months-unpaid" class="block font-semibold">Months Unpaid</label>
-			<input
-				id="months-unpaid"
-				type="number"
-				bind:value={caseDetails.rentFeesClaims.monthsUnpaid}
-				class="w-full rounded-lg border p-2"
-			/>
-
-			<!-- Current Month Unpaid Date -->
-			<label for="unpaid-date" class="block font-semibold">Current Month Unpaid Date</label>
-			<input
-				id="unpaid-date"
-				type="date"
-				bind:value={caseDetails.rentFeesClaims.currentMonthUnpaidDate}
-				class="w-full rounded-lg border p-2"
-			/>
-
-			<!-- Is Subsidized -->
-			<label class="block font-semibold">Is Subsidized?</label>
-			<div class="mb-4 flex gap-4">
-				<label class="inline-flex items-center" for="subsidized-yes">
-					<input
-						id="subsidized-yes"
-						type="radio"
-						bind:group={caseDetails.rentFeesClaims.isSubsidized}
-						value={true}
-					/>
-					<span class="ml-2">Yes</span>
-				</label>
-				<label class="inline-flex items-center" for="subsidized-no">
-					<input
-						id="subsidized-no"
-						type="radio"
-						bind:group={caseDetails.rentFeesClaims.isSubsidized}
-						value={false}
-					/>
-					<span class="ml-2">No</span>
-				</label>
-			</div>
-
-			<!-- Rental Relief Application -->
-			<label class="block font-semibold">Rental Relief Application?</label>
+			<!-- Rental Relief Section -->
+			<h3 class="mt-4 text-lg font-semibold">Rental Relief</h3>
+			<p class="text-sm">
+				Is there currently a pending or rejected rental relief application that has been submitted
+				by you, your company, or the resident being filed on?
+			</p>
 			<div class="mb-4 flex gap-4">
 				<label class="inline-flex items-center" for="relief-yes">
 					<input
@@ -679,72 +710,118 @@
 				</label>
 			</div>
 
-			<!-- Late Fee Amount -->
-			<label for="late-fee" class="block font-semibold">Late Fee Amount ($)</label>
-			<input
-				id="late-fee"
-				type="number"
-				bind:value={caseDetails.rentFeesClaims.lateFee}
-				class="w-full rounded-lg border p-2"
-			/>
+			<!-- Property Fees Section -->
+			<h3 class="mt-4 text-lg font-semibold">Property Fees</h3>
+			<div class="grid grid-cols-2 gap-4">
+				<div>
+					<label for="late-fee" class="block font-semibold">Monthly Late Fee ($)</label>
+					<input
+						id="late-fee"
+						type="number"
+						bind:value={caseDetails.rentFeesClaims.lateFee}
+						class="w-full rounded-lg border p-2"
+					/>
 
-			<!-- Late Fee Months -->
-			<label for="late-months" class="block font-semibold">Late Fee Months</label>
-			<input
-				id="late-months"
-				type="number"
-				bind:value={caseDetails.rentFeesClaims.lateMonths}
-				class="w-full rounded-lg border p-2"
-			/>
+					<label for="late-months" class="block font-semibold">Months Late</label>
+					<input
+						id="late-months"
+						type="number"
+						bind:value={caseDetails.rentFeesClaims.lateMonths}
+						class="w-full rounded-lg border p-2"
+					/>
+				</div>
+				<div>
+					<label for="calculated-late-fees" class="block font-semibold">Total Late Fees</label>
+					<input
+						id="calculated-late-fees"
+						type="number"
+						value={caseDetails.rentFeesClaims.lateFee * caseDetails.rentFeesClaims.lateMonths}
+						class="w-full rounded-lg border bg-gray-100 p-2"
+						disabled
+					/>
 
-			<!-- Filing Fee -->
-			<label for="filing-fee" class="block font-semibold">Filing Fee ($)</label>
-			<input
-				id="filing-fee"
-				type="number"
-				bind:value={caseDetails.rentFeesClaims.filingFee}
-				class="w-full rounded-lg border p-2"
-			/>
+					<label for="filing-fee" class="block font-semibold">Filing Fee ($)</label>
+					<input
+						id="filing-fee"
+						type="number"
+						bind:value={caseDetails.rentFeesClaims.filingFee}
+						class="w-full rounded-lg border p-2"
+					/>
+				</div>
+			</div>
 
-			<!-- Miscellaneous Debts -->
-			<label class="block font-semibold">Miscellaneous Debts</label>
-			<div class="mt-2">
-				{#each caseDetails.rentFeesClaims.miscDebts as debt, index}
-					<div class="mb-2 flex gap-4">
-						<input
-							type="text"
-							bind:value={debt.description}
-							placeholder="Description"
-							class="flex-1 rounded-lg border p-2"
-						/>
-						<input
-							type="number"
-							bind:value={debt.amount}
-							placeholder="Amount ($)"
-							class="w-24 rounded-lg border p-2"
-						/>
-						<button
-							on:click={() => removeDebt(index)}
-							class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
-						>
-							Remove
-						</button>
-					</div>
-				{/each}
+			<!-- Miscellaneous Debts Section -->
+			<h3 class="mt-4 text-lg font-semibold">Miscellaneous Debts</h3>
+			<div class="flex gap-2">
+				<input
+					id="debt-type"
+					type="text"
+					bind:value={newDebt.description}
+					placeholder="Type"
+					class="w-1/3 rounded-lg border p-2"
+				/>
+				<input
+					id="debt-amount"
+					type="number"
+					bind:value={newDebt.amount}
+					placeholder="Amount ($)"
+					class="w-1/3 rounded-lg border p-2"
+				/>
 				<button
 					on:click={addDebt}
-					class="mt-2 rounded bg-green-500 px-4 py-2 text-white hover:bg-green-600"
+					class="w-1/3 rounded bg-[var(--color-primary)] px-4 py-2 text-white hover:bg-opacity-80"
+					>➕ Add Debt</button
 				>
-					Add Debt
-				</button>
 			</div>
+
+			<!-- Debts Table (Scrollable) -->
+			{#if caseDetails.rentFeesClaims.miscDebts.length > 0}
+				<div class="mt-4 max-h-[20vh] overflow-y-auto rounded-lg border">
+					<table class="w-full bg-white text-sm shadow-md">
+						<thead class="bg-gray-200 text-sm font-semibold">
+							<tr>
+								<th class="p-3 text-left">Type</th>
+								<th class="p-3 text-left">Amount</th>
+								<th class="p-3 text-left">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each caseDetails.rentFeesClaims.miscDebts as debt, index}
+								<tr class="border-t">
+									<td class="p-3 text-sm">{debt.description}</td>
+									<td class="p-3 text-sm">${debt.amount}</td>
+									<td class="p-3 text-sm">
+										<button
+											on:click={() => removeDebt(index)}
+											class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+										>
+											Remove
+										</button>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+
+			<!-- Total Due Calculation -->
+			<h3 class="mt-4 text-lg font-semibold">Total Due from Tenant</h3>
+			<input
+				id="total-due"
+				type="number"
+				value={caseDetails.rentFeesClaims.lateFee * caseDetails.rentFeesClaims.lateMonths +
+					caseDetails.rentFeesClaims.miscDebts.reduce((sum, debt) => sum + debt.amount, 0)}
+				class="w-full rounded-lg border bg-gray-100 p-2 text-lg font-bold text-red-600"
+				disabled
+			/>
 
 			<!-- Navigation -->
 			<div class="mt-6 flex justify-between">
 				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
-				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white">
-					Next
-				</button>
+				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
+					>Next</button
+				>
 			</div>
 		{:else if currentStep === 5}
 			<h2 class="mb-4 text-xl font-bold">Additional Information</h2>
