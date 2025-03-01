@@ -1,7 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import CaseCreationModal from '$lib/components/CaseCreationModal.svelte';
 
 	// Mock Data
 	let unreadMessages = 5;
@@ -56,7 +55,6 @@
 		>
 			New Filing or Collection
 		</button>
-		<CaseCreationModal />
 	</div>
 
 	<!-- Top Metrics -->
