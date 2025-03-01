@@ -167,7 +167,7 @@
 
 <!-- Case Creation Modal -->
 <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-	<div class="max-h-[80vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
+	<div class="max-h-[95vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
 		<!-- Progress Bar -->
 		<div class="sticky top-0 mb-4 w-full rounded-full bg-gray-200">
 			<div
@@ -428,42 +428,48 @@
 				class="w-full rounded-lg border p-2"
 			/>
 
-			<!-- Has Unattached Property -->
-			<label class="block font-semibold" for="has-unattached-property"
-				>Has Unattached Property?</label
-			>
-			<div class="mb-4 flex gap-4">
-				<label class="inline-flex items-center" for="has-unattached-property-yes">
-					<input
-						id="has-unattached-property-yes"
-						type="radio"
-						bind:group={caseDetails.tenant.hasUnattachedProperty}
-						value={true}
-					/>
-					<span class="ml-2">Yes</span>
-				</label>
-				<label class="inline-flex items-center" for="has-unattached-property-no">
-					<input
-						id="has-unattached-property-no"
-						type="radio"
-						bind:group={caseDetails.tenant.hasUnattachedProperty}
-						value={false}
-					/>
-					<span class="ml-2">No</span>
-				</label>
-			</div>
+			<div class="mb-4 flex gap-8">
+				<!-- Has Unattached Property -->
+				<div class="flex-1">
+					<label class="block font-semibold" for="has-unattached-property">
+						Has Unattached Property?
+					</label>
+					<div class="flex gap-4">
+						<label class="inline-flex items-center" for="has-unattached-property-yes">
+							<input
+								id="has-unattached-property-yes"
+								type="radio"
+								bind:group={caseDetails.tenant.hasUnattachedProperty}
+								value={true}
+							/>
+							<span class="ml-2">Yes</span>
+						</label>
+						<label class="inline-flex items-center" for="has-unattached-property-no">
+							<input
+								id="has-unattached-property-no"
+								type="radio"
+								bind:group={caseDetails.tenant.hasUnattachedProperty}
+								value={false}
+							/>
+							<span class="ml-2">No</span>
+						</label>
+					</div>
+				</div>
 
-			<!-- Include All Others -->
-			<label class="block font-semibold" for="include-all-others">Include All Others?</label>
-			<div class="mb-4 flex gap-4">
-				<label class="inline-flex items-center" for="include-all-others-checkbox">
-					<input
-						id="include-all-others-checkbox"
-						type="checkbox"
-						bind:checked={caseDetails.tenant.includeAllOthers}
-					/>
-					<span class="ml-2">Yes</span>
-				</label>
+				<!-- Include All Others -->
+				<div class="flex-1">
+					<label class="block font-semibold" for="include-all-others">Include All Others?</label>
+					<div class="flex gap-4">
+						<label class="inline-flex items-center" for="include-all-others-checkbox">
+							<input
+								id="include-all-others-checkbox"
+								type="checkbox"
+								bind:checked={caseDetails.tenant.includeAllOthers}
+							/>
+							<span class="ml-2">Yes</span>
+						</label>
+					</div>
+				</div>
 			</div>
 
 			<!-- Tenant(s) Section -->
@@ -513,38 +519,39 @@
 
 			<!-- Tenant Table -->
 			{#if caseDetails.tenant.tenants.length > 0}
-				<div class="mt-4 overflow-x-auto rounded-lg border">
-					<div class="max-h-[40vh] overflow-y-auto rounded-lg border">
-						<table class="w-full bg-white text-sm shadow-md">
-							<thead class="bg-gray-200 text-sm font-semibold">
-								<tr>
-									<th class="p-3 text-left">First Name</th>
-									<th class="p-3 text-left">Middle Name</th>
-									<th class="p-3 text-left">Last Name</th>
-									<th class="p-3 text-left">Suffix</th>
-									<th class="p-3 text-left">Actions</th>
+				<div class="mt-4 max-h-[20vh] overflow-y-auto rounded-lg border">
+					<table class="w-full bg-white text-sm shadow-md">
+						<!-- Table Header (Sticky) -->
+						<thead class="sticky top-0 z-10 bg-gray-200 text-sm font-semibold">
+							<tr>
+								<th class="p-3 text-left">First Name</th>
+								<th class="p-3 text-left">Middle Name</th>
+								<th class="p-3 text-left">Last Name</th>
+								<th class="p-3 text-left">Suffix</th>
+								<th class="p-3 text-left">Actions</th>
+							</tr>
+						</thead>
+
+						<!-- Table Body (Scrollable) -->
+						<tbody class="divide-y divide-gray-200">
+							{#each caseDetails.tenant.tenants as tenant, index}
+								<tr class="border-t">
+									<td class="p-3 text-sm">{tenant.firstName}</td>
+									<td class="p-3 text-sm">{tenant.middleName}</td>
+									<td class="p-3 text-sm">{tenant.lastName}</td>
+									<td class="p-3 text-sm">{tenant.suffix}</td>
+									<td class="p-3 text-sm">
+										<button
+											on:click={() => removeTenant(index)}
+											class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+										>
+											Remove
+										</button>
+									</td>
 								</tr>
-							</thead>
-							<tbody>
-								{#each caseDetails.tenant.tenants as tenant, index}
-									<tr class="border-t">
-										<td class="p-3 text-sm">{tenant.firstName}</td>
-										<td class="p-3 text-sm">{tenant.middleName}</td>
-										<td class="p-3 text-sm">{tenant.lastName}</td>
-										<td class="p-3 text-sm">{tenant.suffix}</td>
-										<td class="p-3 text-sm">
-											<button
-												on:click={() => removeTenant(index)}
-												class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
-											>
-												Remove
-											</button>
-										</td>
-									</tr>
-								{/each}
-							</tbody>
-						</table>
-					</div>
+							{/each}
+						</tbody>
+					</table>
 				</div>
 			{/if}
 
