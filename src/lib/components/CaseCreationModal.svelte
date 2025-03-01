@@ -63,6 +63,10 @@
 			demand: { file: null, status: '', explanation: '' },
 			ownershipDeed: { file: null, status: '', explanation: '' },
 			additionalDocs: [] // Array of uploaded additional documents
+		},
+		acknowledgment: {
+			rentalReliefConfirmed: false, // User confirms understanding of rental relief
+			statementsConfirmed: false // User affirms the accuracy of statements
 		}
 	};
 
@@ -146,9 +150,15 @@
 
 		const newEntry = { ...caseDetails.newAddress, id: newId, formatted: formattedAddress };
 
+		// Add new address to Address Book
 		addressBook = [...addressBook, newEntry];
+
+		// Update case details
 		caseDetails.addressId = newId;
 		caseDetails.formattedAddress = formattedAddress;
+
+		// Also update tenant address so it pre-fills in Step 3
+		caseDetails.tenant.address = { ...newEntry };
 	}
 
 	// Handle Plaintiff Selection
@@ -238,6 +248,19 @@
 		caseDetails.documents.additionalDocs = caseDetails.documents.additionalDocs.filter(
 			(_, i) => i !== index
 		);
+	}
+
+	function submitCase() {
+		if (
+			!caseDetails.acknowledgment.rentalReliefConfirmed ||
+			!caseDetails.acknowledgment.statementsConfirmed
+		) {
+			alert('You must acknowledge both statements before submitting.');
+			return;
+		}
+
+		console.log('Submitting case:', caseDetails);
+		alert('Case submitted successfully!');
 	}
 </script>
 
@@ -1004,8 +1027,78 @@
 				</button>
 			</div>
 		{:else if currentStep === totalSteps}
-			<h2 class="mb-4 text-xl font-bold">Acknowledgment</h2>
-			<!-- Placeholder for Acknowledgment Section -->
+			<h2 class="mb-4 text-xl font-bold">Acknowledgment & Submission</h2>
+
+			<!-- Subheading -->
+			<h3 class="mb-2 text-lg font-semibold">
+				Attestation of Compliance with Rental Relief Programs and Filing Accuracy
+			</h3>
+
+			<!-- Attestation Text -->
+			<p class="mb-4 border-l-4 border-gray-400 pl-4 text-sm leading-relaxed text-gray-700">
+				To assure you can file the contemplated eviction case please acknowledge that you have
+				reviewed whether the above resident(s) are pending or participating in a Rental Relief
+				Program, which may limit your ability to file this case. Please acknowledge that you have:
+				<br />1. A detailed understanding of any current or pending rental relief programs related
+				to the above listed resident(s).
+				<br />2. Are aware of no limitations placed upon the ability of the property owner,
+				management company or any other party to file the eviction case.
+				<br />3. You understand that if you have any questions, concerns or require additional
+				guidance you should not file this case until you have consulted with your attorney or
+				company resources with knowledge to clarify such matters.
+				<br /><br />
+				You also hereby affirm and attest that the statements set forth in this filing are true and correct.
+				<br /><br />
+				By clicking the boxes below, you are acknowledging and certifying that the resident(s) is/are
+				eligible to have an eviction case filed against them and are not subject to limitation for any
+				reason.
+			</p>
+
+			<!-- Checkbox Section -->
+			<div class="mt-4 space-y-3">
+				<!-- Checkbox 1: Rental Relief Compliance -->
+				<div class="flex items-start space-x-3">
+					<input
+						type="checkbox"
+						id="rental-relief-checkbox"
+						bind:checked={caseDetails.acknowledgment.rentalReliefConfirmed}
+						class="mt-1 h-5 w-5 rounded border-gray-300 focus:ring-[var(--color-primary)]"
+					/>
+					<label for="rental-relief-checkbox" class="text-sm leading-relaxed text-gray-700">
+						I acknowledge and certify compliance with rental relief program guidelines.
+					</label>
+				</div>
+
+				<!-- Checkbox 2: Filing Accuracy -->
+				<div class="flex items-start space-x-3">
+					<input
+						type="checkbox"
+						id="filing-accuracy-checkbox"
+						bind:checked={caseDetails.acknowledgment.statementsConfirmed}
+						class="mt-1 h-5 w-5 rounded border-gray-300 focus:ring-[var(--color-primary)]"
+					/>
+					<label for="filing-accuracy-checkbox" class="text-sm leading-relaxed text-gray-700">
+						<strong>{caseDetails.plaintiff.primaryContact}</strong> hereby affirms signature for the
+						associated electronic document(s) and attests that the statements set forth in this filing
+						are true and correct.
+					</label>
+				</div>
+			</div>
+
+			<!-- Navigation & Submission -->
+			<div class="mt-6 flex justify-between">
+				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
+
+				<!-- Submit Button (Disabled Until Both Checkboxes Are Checked) -->
+				<button
+					on:click={submitCase}
+					class="hover:bg-[var(--color-primary)]-opacity-90 rounded bg-[var(--color-primary)] px-4 py-2 text-white"
+					disabled={!caseDetails.acknowledgment.rentalReliefConfirmed ||
+						!caseDetails.acknowledgment.statementsConfirmed}
+				>
+					Submit Case
+				</button>
+			</div>
 		{/if}
 	</div>
 </div>
