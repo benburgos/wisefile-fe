@@ -5,8 +5,12 @@ const STORAGE_KEY = 'wiseFileData';
 
 // Initialize Data from Local Storage or Seed Data
 export function getStoredData() {
-	let storedData = localStorage.getItem(STORAGE_KEY);
-	return storedData ? JSON.parse(storedData) : seedData;
+	if (typeof window === 'undefined') {
+		return { users: [] }; // Prevents SSR errors
+	}
+
+	let data = localStorage.getItem('seedData');
+	return data ? JSON.parse(data) : { users: [] };
 }
 
 // Save Data to Local Storage
