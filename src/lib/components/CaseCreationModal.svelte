@@ -1,5 +1,9 @@
 <script>
 	import { onMount } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
+
+	const dispatch = createEventDispatcher();
+	export let showModal;
 
 	// Step Handling
 	let currentStep = 1;
@@ -262,6 +266,29 @@
 		console.log('Submitting case:', caseDetails);
 		alert('Case submitted successfully!');
 	}
+
+	function closeModal() {
+		dispatch('close');
+		showModal = false;
+		// Clear form fields
+		caseDetails = {
+			caseType: '',
+			plaintiff: { name: '', managementCompany: '', propertyId: '' },
+			tenant: { address: '', tenantCode: '', tenants: [] },
+			newAddress: {
+				streetNumber: '',
+				streetName: '',
+				unitNumber: '',
+				postalCode: '',
+				city: '',
+				state: '',
+				jurisdiction: '',
+				gateCode: ''
+			},
+			fees: [],
+			rentFeesClaims: { baseRent: 0, monthsUnpaid: 0, lateFee: 0, miscDebts: [] }
+		};
+	}
 </script>
 
 <!-- Case Creation Modal -->
@@ -375,9 +402,8 @@
 			{/if}
 
 			<div class="mt-6 flex justify-between">
-				<button on:click={() => (currentStep = 1)} class="rounded bg-gray-500 px-4 py-2 text-white"
-					>Cancel</button
-				>
+				<button on:click={closeModal}>Cancel</button>
+
 				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
 					>Next</button
 				>
