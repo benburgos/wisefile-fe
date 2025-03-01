@@ -101,14 +101,15 @@
 				gateCode: ''
 			};
 			caseDetails.addressId = 'new';
-			caseDetails.selectedFormattedAddress = 'Adding New Address...';
+			caseDetails.formattedAddress = 'Adding New Address...';
+			caseDetails.tenant.address = {}; // Reset tenant address so it's editable separately
 		} else {
 			let selectedAddress = addressBook.find((a) => a.id == selectedValue);
 
 			if (selectedAddress) {
 				caseDetails.addressId = selectedAddress.id;
-				caseDetails.formattedAddress = selectedAddress.formatted;
-				caseDetails.newAddress = { ...selectedAddress }; // Populate for later use
+				caseDetails.formattedAddress = selectedAddress.formatted; // Keep case address static
+				caseDetails.tenant.address = { ...selectedAddress }; // Allow tenant address edits
 			}
 		}
 	}
@@ -411,13 +412,12 @@
 		{:else if currentStep === 3}
 			<h2 class="mb-4 text-xl font-bold">Tenant / Defendant Details</h2>
 
-			<!-- Tenant Address Fields -->
+			<!-- Tenant Address (Editable) -->
 			<label for="tenant-address" class="block font-semibold">Tenant Address</label>
 			<input
 				id="tenant-address"
-				value={caseDetails.formattedAddress}
-				class="w-full rounded-lg border bg-gray-100 p-2"
-				disabled
+				bind:value={caseDetails.tenant.address.formatted}
+				class="w-full rounded-lg border p-2"
 			/>
 
 			<!-- Tenant Code -->
