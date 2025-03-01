@@ -4,11 +4,13 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
+	import { getStoredData } from '$lib/utils/storage';
 	import SideNav from '$lib/components/Nav/SideNav.svelte';
 
 	let isAuthenticated = null;
 	let userRole = null;
 	let unsubscribe;
+	let appData = getStoredData();
 
 	onMount(() => {
 		unsubscribe = auth.subscribe(({ isAuthenticated: authStatus, role }) => {
