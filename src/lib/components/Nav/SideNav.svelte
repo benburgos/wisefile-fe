@@ -1,7 +1,6 @@
 <script>
 	import { auth, logoutUser } from '$lib/stores/auth';
 	import { page } from '$app/stores';
-	import RoleSwitcher from '$lib/components/RoleSwitcher.svelte';
 
 	let isAuthenticated = false;
 	let userRole = null;
@@ -51,7 +50,9 @@
 	};
 </script>
 
-<nav class="flex h-screen w-64 flex-col bg-[var(--color-sidebar)] text-[var(--color-sidebar-text)] shadow-lg">
+<nav
+	class="flex h-screen w-64 flex-col bg-[var(--color-sidebar)] text-[var(--color-sidebar-text)] shadow-lg"
+>
 	<!-- Navigation Links -->
 	<ul class="flex-grow space-y-1 p-4">
 		{#if userRole && navLinks[userRole]?.length}
@@ -68,14 +69,9 @@
 				</li>
 			{/each}
 		{:else}
-			<li class="text-sm italic text-gray-400 p-4">No links available</li>
+			<li class="p-4 text-sm italic text-gray-400">No links available</li>
 		{/if}
 	</ul>
-
-	<!-- RoleSwitcher -->
-	<div class="p-4 border-t border-[var(--color-border)]">
-		<RoleSwitcher />
-	</div>
 
 	<!-- Logout Button -->
 	<div class="p-4">
@@ -87,4 +83,3 @@
 		</button>
 	</div>
 </nav>
-
