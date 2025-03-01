@@ -2,12 +2,23 @@
 	import { getStoredData } from '$lib/utils/storage';
 	import { loginUser } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 
 	let email = '';
 	let password = '';
 	let error = '';
+	let users = [];
 
-	let users = getStoredData().users;
+	onMount(() => {
+		const storedData = getStoredData();
+		console.log('Loaded stored data:', storedData); // Debugging output
+
+		if (storedData && storedData.users && storedData.users.length > 0) {
+			users = storedData.users;
+		} else {
+			console.error('No users found in localStorage!');
+		}
+	});
 
 	function handleSubmit(event) {
 		event.preventDefault();
@@ -70,13 +81,17 @@
 
 	<!-- Quick Login Buttons -->
 	<div class="mt-4 flex w-96 flex-wrap gap-2">
-		{#each users as user}
-			<button
-				on:click={() => quickLogin(user.email)}
-				class="flex-1 rounded bg-gray-300 px-4 py-2 text-sm text-gray-800 hover:bg-gray-400"
-			>
-				Login as {user.role} ({user.email})
-			</button>
-		{/each}
+		{#if users.length > 0}
+			{#each users as user}
+				<button
+					on:click={() => quickLogin(user.email)}
+					class="flex-1 rounded bg-gray-300 px-4 py-2 text-sm text-gray-800 hover:bg-gray-400"
+				>
+					Login as {user.role} ({user.email})
+				</button>
+			{/each}
+		{:else}
+			<p class="text-sm text-gray-500">No users found, initializing...</p>
+		{/if}
 	</div>
 </section>

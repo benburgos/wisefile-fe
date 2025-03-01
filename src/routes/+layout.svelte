@@ -5,27 +5,33 @@
 	import { goto } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
 	import { getStoredData, saveToLocalStorage } from '$lib/utils/storage';
-	import seedData from '$lib/seed.js';
+	import { seedData } from '$lib/seed.js';
 	import SideNav from '$lib/components/Nav/SideNav.svelte';
 
 	let isAuthenticated = null;
 	let userRole = null;
 	let unsubscribe;
-	let appData = getStoredData();
+	let appData = null;
 
 	onMount(() => {
 		unsubscribe = auth.subscribe(({ isAuthenticated: authStatus, role }) => {
 			isAuthenticated = authStatus;
 			userRole = role;
 		});
-		const existingData = getStoredData();
-		if (!existingData) {
+
+		// Force Local Storage Initialization
+		let existingData = getStoredData();
+		if (!existingData || !existingData.users || existingData.users.length === 0) {
+			console.log('No stored data found, initializing seed data...');
 			saveToLocalStorage(seedData);
-			console.log('Seed data loaded into localStorage');
+			appData = seedData;
+		} else {
+			console.log('Existing data found in localStorage:', existingData);
+			appData = existingData;
 		}
 	});
 
-	// Delay before redirecting to avoid flicker
+	// Redirect if user is not authenticated
 	$: if (
 		isAuthenticated !== null &&
 		typeof window !== 'undefined' &&
@@ -34,7 +40,7 @@
 	) {
 		setTimeout(() => {
 			goto('/');
-		}, 500); // Adjust delay time as needed
+		}, 500);
 	}
 
 	onDestroy(() => {
