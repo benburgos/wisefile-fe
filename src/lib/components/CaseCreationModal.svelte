@@ -202,13 +202,15 @@
 <!-- Case Creation Modal -->
 <div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
 	<div class="max-h-[95vh] w-full max-w-4xl overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
-		<!-- Progress Bar -->
-		<div class="sticky top-0 mb-4 w-full rounded-full bg-gray-200">
-			<div
-				class="rounded-full bg-[var(--color-primary)] p-1 text-center text-xs leading-none text-white"
-				style="width: {(currentStep / totalSteps) * 100}%"
-			>
-				Step {currentStep} of {totalSteps}
+		<!-- Sticky Progress Bar with Background -->
+		<div class="sticky top-0 z-10 mb-4 w-full bg-white shadow-md">
+			<div class="rounded-full bg-gray-200 p-2">
+				<div
+					class="rounded-full bg-[var(--color-primary)] p-1 text-center text-xs leading-none text-white"
+					style="width: {(currentStep / totalSteps) * 100}%"
+				>
+					Step {currentStep} of {totalSteps}
+				</div>
 			</div>
 		</div>
 
@@ -809,9 +811,9 @@
 			<h3 class="mt-4 text-lg font-semibold">Total Due from Tenant</h3>
 			<input
 				id="total-due"
-				type="number"
-				value={caseDetails.rentFeesClaims.lateFee * caseDetails.rentFeesClaims.lateMonths +
-					caseDetails.rentFeesClaims.miscDebts.reduce((sum, debt) => sum + debt.amount, 0)}
+				type="text"
+				value={`$${(caseDetails.rentFeesClaims.lateFee * caseDetails.rentFeesClaims.lateMonths +
+					caseDetails.rentFeesClaims.miscDebts.reduce((sum, debt) => sum + debt.amount, 0)).toFixed(2)}`}
 				class="w-full rounded-lg border bg-gray-100 p-2 text-lg font-bold text-red-600"
 				disabled
 			/>
