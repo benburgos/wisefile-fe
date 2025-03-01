@@ -9,6 +9,7 @@
 	let cases = [];
 	let showModal = false;
 	let searchQuery = '';
+	let filtered = [];
 
 	auth.subscribe((user) => {
 		if (user) {
@@ -29,6 +30,13 @@
 		}
 	});
 
+	// Ensure filtering reacts to searchQuery & cases changes
+	$: filtered = cases.filter((c) =>
+		`${c.caseNumber} ${c.caseType} ${c.status} ${c.subStatus} ${c.plaintiff.name} ${c.newAddress.state} ${c.newAddress.jurisdiction}`
+			.toLowerCase()
+			.includes(searchQuery.toLowerCase())
+	);
+
 	// Toggle Case Creation Modal
 	function openCaseModal() {
 		showModal = true;
@@ -47,15 +55,6 @@
 			storedData.caseDetails = cases;
 			saveToLocalStorage(storedData);
 		}
-	}
-
-	// Filter Cases Based on Search Query
-	function filteredCases() {
-		return cases.filter((c) =>
-			`${c.caseNumber} ${c.caseType} ${c.status} ${c.subStatus} ${c.plaintiff.name} ${c.newAddress.state} ${c.newAddress.jurisdiction}`
-				.toLowerCase()
-				.includes(searchQuery.toLowerCase())
-		);
 	}
 
 	// Format Address for Table (Remove Commas)
@@ -112,7 +111,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each filteredCases() as caseDetail}
+				{#each filtered as caseDetail}
 					{#if !caseDetail.deleted}
 						<tr class="border-t">
 							<td class="px-2 py-1">{caseDetail.caseNumber}</td>
