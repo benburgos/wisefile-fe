@@ -21,20 +21,23 @@
 			{ name: 'Invoices', path: '/invoices' },
 			{ name: 'Messaging', path: '/messaging' },
 			{ name: 'Analytics', path: '/analytics' },
-			{ name: 'Admin Panel', path: '/admin' }
+			{ name: 'Admin Panel', path: '/admin' },
+			{ name: 'Settings', path: '/settings' }
 		],
 		ops: [
 			{ name: 'Dashboard', path: '/dashboard' },
 			{ name: 'Cases', path: '/cases' },
 			{ name: 'Documents', path: '/documents' },
 			{ name: 'Invoices', path: '/invoices' },
-			{ name: 'Messaging', path: '/messaging' }
+			{ name: 'Messaging', path: '/messaging' },
+			{ name: 'Settings', path: '/settings' }
 		],
 		lawyer: [
 			{ name: 'Dashboard', path: '/dashboard' },
 			{ name: 'Cases', path: '/cases' },
 			{ name: 'Documents', path: '/documents' },
-			{ name: 'Messaging', path: '/messaging' }
+			{ name: 'Messaging', path: '/messaging' },
+			{ name: 'Settings', path: '/settings' }
 		],
 		client: [
 			{ name: 'Dashboard', path: '/dashboard' },
@@ -42,7 +45,8 @@
 			{ name: 'Documents', path: '/documents' },
 			{ name: 'Invoices', path: '/invoices' },
 			{ name: 'Messaging', path: '/messaging' },
-			{ name: 'Analytics', path: '/analytics' }
+			{ name: 'Analytics', path: '/analytics' },
+			{ name: 'Settings', path: '/settings' }
 		]
 	};
 </script>
