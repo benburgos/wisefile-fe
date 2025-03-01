@@ -1,5 +1,5 @@
 <script>
-	import { getStoredData, saveToStorage } from '$lib/utils/storage';
+	import { getStoredData } from '$lib/utils/storage';
 	import { loginUser } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 
@@ -7,13 +7,11 @@
 	let password = '';
 	let error = '';
 
+	let users = getStoredData().users;
+
 	function handleSubmit(event) {
 		event.preventDefault();
 
-		let appData = getStoredData();
-		let users = appData.users;
-
-		// Find User by Email
 		let user = users.find((u) => u.email === email);
 
 		if (user) {
@@ -23,10 +21,19 @@
 			error = 'Invalid email or password';
 		}
 	}
+
+	function quickLogin(userEmail) {
+		let user = users.find((u) => u.email === userEmail);
+		if (user) {
+			email = user.email;
+			password = 'password123'; // Assume default test password
+		}
+	}
 </script>
 
 <section class="flex h-screen flex-col items-center justify-center bg-gray-100">
 	<h1 class="mb-6 text-4xl font-bold">Login to WiseFile</h1>
+
 	<form on:submit={handleSubmit} class="mb-4 w-96 rounded bg-white px-8 pb-8 pt-6 shadow-md">
 		<div class="mb-4">
 			<label for="email" class="mb-2 block text-sm font-bold text-gray-700">Email</label>
@@ -60,4 +67,16 @@
 			Login
 		</button>
 	</form>
+
+	<!-- Quick Login Buttons -->
+	<div class="mt-4 flex w-96 flex-wrap gap-2">
+		{#each users as user}
+			<button
+				on:click={() => quickLogin(user.email)}
+				class="flex-1 rounded bg-gray-300 px-4 py-2 text-sm text-gray-800 hover:bg-gray-400"
+			>
+				Login as {user.role} ({user.email})
+			</button>
+		{/each}
+	</div>
 </section>
