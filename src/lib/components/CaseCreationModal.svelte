@@ -220,12 +220,24 @@
 
 	function addAdditionalDocument() {
 		if (!newAdditionalDoc.file || !newAdditionalDoc.type) return; // Ensure valid entry
-		caseDetails.documents.additionalDocs.push({ ...newAdditionalDoc });
-		newAdditionalDoc = { file: '', type: '', notes: '' }; // Reset inputs
+
+		// Update the array in a reactive way
+		caseDetails.documents.additionalDocs = [
+			...caseDetails.documents.additionalDocs,
+			{ ...newAdditionalDoc }
+		];
+
+		// Reset the input fields
+		newAdditionalDoc = { file: '', type: '', notes: '' };
+
+		// Manually reset the file input
+		document.getElementById('additional-file').value = '';
 	}
 
 	function removeAdditionalDocument(index) {
-		caseDetails.documents.additionalDocs.splice(index, 1);
+		caseDetails.documents.additionalDocs = caseDetails.documents.additionalDocs.filter(
+			(_, i) => i !== index
+		);
 	}
 </script>
 
@@ -857,134 +869,140 @@
 					>Next</button
 				>
 			</div>
-            {:else if currentStep === 5}
-            <h2 class="mb-4 text-xl font-bold">Additional Information</h2>
-        
-            <!-- Required Documents -->
-            <h3 class="mt-4 text-lg font-semibold">Required Documents</h3>
-            <p class="text-sm text-gray-600">
-                Allowed file types: .xls, .xlsx, .pdf, .png, .jpeg, .jpg, .doc, .docx, .csv
-            </p>
-        
-            <!-- Legal Disclaimer -->
-            <p class="mt-2 text-sm text-red-600">
-                I certify that I will not upload any document that contains protected personal information such as
-                social security numbers, driver’s licenses, passports, date of birth, or any financial account numbers
-                unless required by the jurisdiction or instructed by the attorney.
-            </p>
-        
-            <!-- Standard Document Uploads -->
-            {#each ['lease', 'ledger', 'demand', 'ownershipDeed'] as docType}
-                <div class="mt-4">
-                    <label for="{docType}-upload" class="block font-semibold capitalize">{docType.replace(/([A-Z])/g, ' $1')}</label>
-                    <input
-                        id="{docType}-upload"
-                        type="file"
-                        on:change={(event) => handleFileUpload(event, docType)}
-                        class="w-full rounded-lg border p-2"
-                    />
-        
-                    <!-- Document Status Dropdown -->
-                    <label for="{docType}-status" class="mt-2 block font-semibold">Document Status</label>
-                    <select
-                        id="{docType}-status"
-                        bind:value={caseDetails.documents[docType].status}
-                        on:change={(event) => handleDocumentStatus(docType, event)}
-                        class="w-full rounded-lg border p-2"
-                    >
-                        <option value="" disabled selected>Select status</option>
-                        <option value="attached">Attached</option>
-                        <option value="cannotAttachSquatter">Cannot Attach - Squatter</option>
-                        <option value="cannotAttachOther">Cannot Attach - Other</option>
-                    </select>
-        
-                    <!-- Explanation (Only If Not Attached) -->
-                    {#if caseDetails.documents[docType].status !== 'attached' && caseDetails.documents[docType].status !== ''}
-                        <label for="{docType}-explanation" class="mt-2 block font-semibold">Missing Required Document Explanation</label>
-                        <textarea
-                            id="{docType}-explanation"
-                            bind:value={caseDetails.documents[docType].explanation}
-                            class="w-full rounded-lg border p-2"
-                            rows="2"
-                            placeholder="Provide explanation for missing document"
-                        ></textarea>
-                    {/if}
-                </div>
-            {/each}
-        
-            <!-- Additional Documents -->
-            <h3 class="mt-6 text-lg font-semibold">Additional Documents</h3>
-        
-            <!-- Upload & Add Additional Document -->
-            <div class="grid grid-cols-3 gap-4">
-                <input
-                    id="additional-file"
-                    type="file"
-                    on:change={(event) => (newAdditionalDoc.file = event.target.files[0].name)}
-                    class="rounded-lg border p-2"
-                />
-                <input
-                    id="additional-type"
-                    type="text"
-                    bind:value={newAdditionalDoc.type}
-                    placeholder="Document Type"
-                    class="rounded-lg border p-2"
-                />
-                <input
-                    id="additional-notes"
-                    type="text"
-                    bind:value={newAdditionalDoc.notes}
-                    placeholder="Notes (Optional)"
-                    class="rounded-lg border p-2"
-                />
-                <button
-                    on:click={addAdditionalDocument}
-                    class="col-span-3 rounded bg-[var(--color-primary)] px-4 py-2 text-white hover:bg-opacity-80"
-                >
-                    ➕ Add Document
-                </button>
-            </div>
-        
-            <!-- Additional Documents Table -->
-            {#if caseDetails.documents.additionalDocs.length > 0}
-                <div class="mt-4 max-h-[20vh] overflow-y-auto rounded-lg border">
-                    <table class="w-full bg-white text-sm shadow-md">
-                        <thead class="bg-gray-200 text-sm font-semibold">
-                            <tr>
-                                <th class="p-3 text-left">File Name</th>
-                                <th class="p-3 text-left">Type</th>
-                                <th class="p-3 text-left">Notes</th>
-                                <th class="p-3 text-left">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {#each caseDetails.documents.additionalDocs as doc, index}
-                                <tr class="border-t">
-                                    <td class="p-3 text-sm">{doc.file}</td>
-                                    <td class="p-3 text-sm">{doc.type}</td>
-                                    <td class="p-3 text-sm">{doc.notes}</td>
-                                    <td class="p-3 text-sm">
-                                        <button
-                                            on:click={() => removeAdditionalDocument(index)}
-                                            class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
-                                        >
-                                            Remove
-                                        </button>
-                                    </td>
-                                </tr>
-                            {/each}
-                        </tbody>
-                    </table>
-                </div>
-            {/if}
-        
-            <!-- Navigation -->
-            <div class="mt-6 flex justify-between">
-                <button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
-                <button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white">
-                    Next
-                </button>
-            </div>        
+		{:else if currentStep === 5}
+			<h2 class="mb-4 text-xl font-bold">Additional Information</h2>
+
+			<!-- ✅ Required Documents -->
+			<h3 class="mt-4 text-lg font-semibold">Required Documents</h3>
+			<p class="text-sm text-gray-600">
+				Allowed file types: .xls, .xlsx, .pdf, .png, .jpeg, .jpg, .doc, .docx, .csv
+			</p>
+
+			<!-- Legal Disclaimer -->
+			<p class="mt-2 text-sm text-red-600">
+				I certify that I will not upload any document that contains protected personal information
+				such as social security numbers, driver’s licenses, passports, date of birth, or any
+				financial account numbers unless required by the jurisdiction or instructed by the attorney.
+			</p>
+
+			<!-- 🔹 Standard Document Uploads (Lease, Ledger, Demand, Ownership Deed) -->
+			{#each ['lease', 'ledger', 'demand', 'ownershipDeed'] as docType}
+				<div class="mt-4">
+					<label for="{docType}-upload" class="block font-semibold capitalize"
+						>{docType.replace(/([A-Z])/g, ' $1')}</label
+					>
+					<div class="grid grid-cols-5 gap-4">
+						<!-- Upload Field (60%) -->
+						<input
+							id="{docType}-upload"
+							type="file"
+							on:change={(event) => handleFileUpload(event, docType)}
+							class="col-span-3 rounded-lg border p-2"
+						/>
+
+						<!-- Status Dropdown (40%) -->
+						<select
+							id="{docType}-status"
+							bind:value={caseDetails.documents[docType].status}
+							on:change={(event) => handleDocumentStatus(docType, event)}
+							class="col-span-2 rounded-lg border p-2"
+						>
+							<option value="" disabled selected>Select status</option>
+							<option value="attached">Attached</option>
+							<option value="cannotAttachSquatter">Cannot Attach - Squatter</option>
+							<option value="cannotAttachOther">Cannot Attach - Other</option>
+						</select>
+					</div>
+
+					<!-- Explanation (Only If Not Attached) -->
+					{#if caseDetails.documents[docType].status !== 'attached' && caseDetails.documents[docType].status !== ''}
+						<label for="{docType}-explanation" class="mt-2 block font-semibold"
+							>Missing Required Document Explanation</label
+						>
+						<textarea
+							id="{docType}-explanation"
+							bind:value={caseDetails.documents[docType].explanation}
+							class="w-full rounded-lg border p-2"
+							rows="2"
+							placeholder="Provide explanation for missing document"
+						></textarea>
+					{/if}
+				</div>
+			{/each}
+
+			<!-- 🔹 Additional Documents -->
+			<h3 class="mt-6 text-lg font-semibold">Additional Documents</h3>
+
+			<!-- Upload & Add Additional Document -->
+			<div class="grid grid-cols-10 gap-4">
+				<input
+					id="additional-file"
+					type="file"
+					on:change={(event) => (newAdditionalDoc.file = event.target.files[0].name)}
+					class="col-span-3 rounded-lg border p-2"
+				/>
+				<input
+					id="additional-type"
+					type="text"
+					bind:value={newAdditionalDoc.type}
+					placeholder="Document Type"
+					class="col-span-3 rounded-lg border p-2"
+				/>
+				<input
+					id="additional-notes"
+					type="text"
+					bind:value={newAdditionalDoc.notes}
+					placeholder="Notes (Optional)"
+					class="col-span-3 rounded-lg border p-2"
+				/>
+				<button
+					on:click={addAdditionalDocument}
+					class="col-span-1 rounded bg-[var(--color-primary)] px-3 py-1 text-white hover:bg-opacity-80"
+				>
+					Add
+				</button>
+			</div>
+
+			<!-- Additional Documents Table -->
+			{#if caseDetails.documents.additionalDocs.length > 0}
+				<div class="mt-4 max-h-[20vh] overflow-y-auto rounded-lg border">
+					<table class="w-full bg-white text-sm shadow-md">
+						<thead class="sticky top-0 bg-gray-200 text-sm font-semibold">
+							<tr>
+								<th class="p-3 text-left">File Name</th>
+								<th class="p-3 text-left">Type</th>
+								<th class="p-3 text-left">Notes</th>
+								<th class="p-3 text-left">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each caseDetails.documents.additionalDocs as doc, index}
+								<tr class="border-t">
+									<td class="p-3 text-sm">{doc.file}</td>
+									<td class="p-3 text-sm">{doc.type}</td>
+									<td class="p-3 text-sm">{doc.notes}</td>
+									<td class="p-3 text-sm">
+										<button
+											on:click={() => removeAdditionalDocument(index)}
+											class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+										>
+											Remove
+										</button>
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
+
+			<!-- Navigation -->
+			<div class="mt-6 flex justify-between">
+				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
+				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white">
+					Next
+				</button>
+			</div>
 		{:else if currentStep === totalSteps}
 			<h2 class="mb-4 text-xl font-bold">Acknowledgment</h2>
 			<!-- Placeholder for Acknowledgment Section -->
