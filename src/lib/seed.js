@@ -60,8 +60,8 @@ export const seedData = {
 			caseNumber: 'ABC123-001',
 			company_id: 'company-002',
 			caseType: 'filing',
-			status: 'Open',
-			subStatus: 'Pending Review',
+			status: 'Demand Posted',
+			subStatus: 'Pending Expiration',
 			deleted: false,
 			formattedAddress: '11523 W. Orange Blossom Ln., Avondale, AZ, 85253',
 			newAddress: {
@@ -72,7 +72,7 @@ export const seedData = {
 				city: 'Avondale',
 				state: 'AZ',
 				jurisdiction: 'Maricopa County',
-				gateCode: ''
+				gateCode: '1234'
 			},
 			plaintiff: {
 				name: 'ABC Holdings LLC',
@@ -90,55 +90,132 @@ export const seedData = {
 			fees: [
 				{ type: 'Filing Fee', amount: 450, description: 'Fee for creating the filing' },
 				{ type: 'Late Fee', amount: 100, description: 'Unpaid rent penalty' }
-			],
-			rentFeesClaims: {
-				baseRent: 1200,
-				monthsUnpaid: 2,
-				lateFee: 100,
-				miscDebts: [{ type: 'Utility Bill', amount: 200 }]
-			}
+			]
 		},
 		{
 			_id: 'case-002',
-			caseNumber: 'XYZ456-002',
-			company_id: 'company-003',
+			caseNumber: 'LMN789-003',
+			company_id: 'company-002',
 			caseType: 'filing',
-			status: 'Open',
-			subStatus: 'Awaiting Payment',
+			status: 'Eviction Service',
+			subStatus: 'Notice Delivered',
 			deleted: false,
-			formattedAddress: '2025 E. Main St., Phoenix, AZ, 85004',
+			formattedAddress: '789 Elm St., Scottsdale, AZ, 85251',
 			newAddress: {
-				streetNumber: '2025',
-				streetName: 'E. Main St.',
-				unitNumber: '',
-				postalCode: '85004',
-				city: 'Phoenix',
+				streetNumber: '789',
+				streetName: 'Elm St.',
+				unitNumber: 'Apt 3B',
+				postalCode: '85251',
+				city: 'Scottsdale',
 				state: 'AZ',
 				jurisdiction: 'Maricopa County',
-				gateCode: ''
+				gateCode: '4321'
+			},
+			plaintiff: {
+				name: 'ABC Holdings LLC',
+				managementCompany: 'ABC Asset Group',
+				propertyId: 'prop-003',
+				primaryContact: 'Bob Smith',
+				primaryContactPhone: '555-6789',
+				primaryContactEmail: 'bob@example.com'
+			},
+			tenant: {
+				address: '789 Elm St., Scottsdale, AZ, 85251',
+				tenantCode: 'T003',
+				tenants: [{ firstName: 'Michael', lastName: 'Brown', tenantCode: 'T003' }]
+			},
+			fees: [
+				{ type: 'Filing Fee', amount: 450, description: 'Fee for creating the filing' },
+				{ type: 'Eviction Processing Fee', amount: 300, description: 'Eviction service fee' }
+			],
+			rentFeesClaims: {
+				baseRent: 1700,
+				monthsUnpaid: 2,
+				lateFee: 90,
+				miscDebts: [{ type: 'Maintenance Repair', amount: 150 }]
+			}
+		},
+		{
+			_id: 'case-003',
+			caseNumber: 'PQR101-004',
+			company_id: 'company-003',
+			caseType: 'filing',
+			status: 'Court Date',
+			subStatus: 'Scheduled',
+			deleted: false,
+			formattedAddress: '4567 Maple Ave., Glendale, AZ, 85301',
+			newAddress: {
+				streetNumber: '4567',
+				streetName: 'Maple Ave.',
+				unitNumber: '',
+				postalCode: '85301',
+				city: 'Glendale',
+				state: 'AZ',
+				jurisdiction: 'Maricopa County',
+				gateCode: '9876'
 			},
 			plaintiff: {
 				name: 'XYZ Realty Group',
-				managementCompany: 'XYZ Management Co.',
-				propertyId: 'prop-002',
+				managementCompany: 'XYZ Rental Solutions',
+				propertyId: 'prop-004',
 				primaryContact: 'Ethan Foster',
 				primaryContactPhone: '555-8901',
 				primaryContactEmail: 'ethan@example.com'
 			},
 			tenant: {
-				address: '2025 E. Main St., Phoenix, AZ, 85004',
-				tenantCode: 'T002',
-				tenants: [{ firstName: 'Sara', lastName: 'Lee', tenantCode: 'T002' }]
+				address: '4567 Maple Ave., Glendale, AZ, 85301',
+				tenantCode: 'T004',
+				tenants: [{ firstName: 'Rachel', lastName: 'Green', tenantCode: 'T004' }]
 			},
 			fees: [
 				{ type: 'Filing Fee', amount: 450, description: 'Fee for creating the filing' },
-				{ type: 'Damages', amount: 500, description: 'Property damage fees' }
+				{ type: 'Court Processing Fee', amount: 250, description: 'Court administrative cost' }
 			],
 			rentFeesClaims: {
-				baseRent: 1500,
-				monthsUnpaid: 3,
-				lateFee: 120,
-				miscDebts: [{ type: 'Damages', amount: 500 }]
+				baseRent: 1850,
+				monthsUnpaid: 4,
+				lateFee: 150,
+				miscDebts: [{ type: 'Legal Fee', amount: 300 }]
+			}
+		},
+		{
+			_id: 'case-004',
+			caseNumber: 'STU505-005',
+			company_id: 'company-002',
+			caseType: 'collection',
+			status: 'Dismissed – Paid',
+			subStatus: 'Resolved',
+			deleted: false,
+			formattedAddress: '9012 Birch Rd., Tucson, AZ, 85710',
+			newAddress: {
+				streetNumber: '9012',
+				streetName: 'Birch Rd.',
+				unitNumber: 'Unit 5A',
+				postalCode: '85710',
+				city: 'Tucson',
+				state: 'AZ',
+				jurisdiction: 'Pima County',
+				gateCode: ''
+			},
+			plaintiff: {
+				name: 'ABC Holdings LLC',
+				managementCompany: 'ABC Asset Group',
+				propertyId: 'prop-005',
+				primaryContact: 'Bob Smith',
+				primaryContactPhone: '555-6789',
+				primaryContactEmail: 'bob@example.com'
+			},
+			tenant: {
+				address: '9012 Birch Rd., Tucson, AZ, 85710',
+				tenantCode: 'T005',
+				tenants: [{ firstName: 'David', lastName: 'Smith', tenantCode: 'T005' }]
+			},
+			fees: [{ type: 'Filing Fee', amount: 450, description: 'Fee for creating the filing' }],
+			rentFeesClaims: {
+				baseRent: 1400,
+				monthsUnpaid: 1,
+				lateFee: 80,
+				miscDebts: [{ type: 'Key Replacement', amount: 50 }]
 			}
 		}
 	]
