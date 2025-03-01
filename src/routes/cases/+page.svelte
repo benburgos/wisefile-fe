@@ -118,7 +118,7 @@
 							<td class="px-2 py-1">{caseDetail.caseType}</td>
 							<td class="px-2 py-1">{caseDetail.status}</td>
 							<td class="px-2 py-1">{caseDetail.subStatus}</td>
-							<td class="px-2 py-1 font-semibold text-green-600">
+							<td class="px-2 py-1 font-semibold">
 								${calculateBalance(caseDetail.fees)}
 							</td>
 							<td class="px-2 py-1">{formatAddress(caseDetail.newAddress)}</td>
