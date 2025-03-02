@@ -1,5 +1,6 @@
 <script>
 	import { onMount } from 'svelte';
+	import { writable } from 'svelte/store';
 	import { page } from '$app/stores';
 	import { auth } from '$lib/stores/auth';
 	import { getStoredData, saveToLocalStorage } from '$lib/utils/storage';
@@ -203,6 +204,36 @@
 			primaryContact: 'Sarah Lee'
 		}
 	];
+
+	// Message data (Hardcoded for now)
+	let messages = writable([
+		{ user: 'John Doe', message: 'Tenant has responded.', timestamp: '2025-03-01 10:45 AM' },
+		{ user: 'Jane Smith', message: 'Updated filing status.', timestamp: '2025-03-01 11:15 AM' },
+		{ user: 'Case Manager', message: 'Court hearing scheduled.', timestamp: '2025-03-01 01:30 PM' },
+		{ user: 'Attorney', message: 'Legal paperwork sent.', timestamp: '2025-03-01 03:00 PM' },
+		{ user: 'Ops Team', message: 'Confirmed service of notice.', timestamp: '2025-03-01 05:20 PM' }
+	]);
+
+	// Modal state
+	let showMessageModal = false;
+	let newMessage = '';
+	let selectedRecipient = '';
+
+	// Sample recipients (Pull from caseDetails later)
+	const recipients = ['John Doe', 'Jane Smith', 'Case Manager', 'Attorney', 'Ops Team'];
+
+	// Function to add a new message
+	function addMessage() {
+		if (newMessage.trim() && selectedRecipient) {
+			messages.update((msgs) => [
+				...msgs,
+				{ user: selectedRecipient, message: newMessage, timestamp: new Date().toLocaleString() }
+			]);
+			newMessage = '';
+			selectedRecipient = '';
+			showMessageModal = false;
+		}
+	}
 </script>
 
 <section class="rounded-lg bg-white p-6 shadow-md">
@@ -429,6 +460,85 @@
 			{/if}
 		</div>
 	</div>
+
+	<!-- Messages Section -->
+	<div class="mt-4 border-t pt-4">
+		<div class="mb-2 flex items-center justify-between">
+			<h2 class="text-xl font-bold">Messages</h2>
+			<button
+				on:click={() => (showMessageModal = true)}
+				class="rounded bg-blue-500 px-3 py-1 text-sm text-white"
+			>
+				Add New Message
+			</button>
+		</div>
+
+		<!-- Scrollable Messages Table -->
+		<div class="max-h-[250px] overflow-y-auto rounded-lg border shadow-md">
+			<table class="w-full text-sm">
+				<thead class="sticky top-0 bg-gray-100">
+					<tr>
+						<th class="p-2">User</th>
+						<th class="p-2">Message</th>
+						<th class="p-2">Date Sent</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each $messages as msg}
+						<tr class="border-t">
+							<td class="p-2">{msg.user}</td>
+							<td class="p-2">{msg.message}</td>
+							<td class="p-2">{msg.timestamp}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+	<!-- Message Modal -->
+	{#if showMessageModal}
+		<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+			<div class="w-96 rounded-lg bg-white p-6 shadow-lg">
+				<h2 class="mb-4 text-xl font-bold">New Message</h2>
+
+				<!-- Recipient Dropdown -->
+				<label for="message-recipient" class="mb-1 block text-sm font-bold">Recipient</label>
+				<select bind:value={selectedRecipient} class="mb-4 w-full border p-2" id="message-recipient">
+					<option value="" disabled>Select recipient</option>
+					{#each recipients as recipient}
+						<option value={recipient}>{recipient}</option>
+					{/each}
+				</select>
+
+				<!-- Message Input -->
+				<label for="message-input" class="mb-1 block text-sm font-bold">Message</label>
+				<textarea
+					id="message-input"
+					bind:value={newMessage}
+					class="mb-4 w-full border p-2"
+					placeholder="Enter your message..."
+				></textarea>
+
+				<!-- Buttons -->
+				<div class="flex justify-end gap-2">
+					<button
+						on:click={() => (showMessageModal = false)}
+						class="rounded bg-gray-300 px-3 py-1 text-sm"
+					>
+						Cancel
+					</button>
+					<button
+						on:click={addMessage}
+						class="rounded bg-blue-500 px-3 py-1 text-sm text-white"
+						disabled={!newMessage.trim() || !selectedRecipient}
+					>
+						Send
+					</button>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Activity Log Section -->
 	<div class="mt-6">
