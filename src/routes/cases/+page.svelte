@@ -14,7 +14,7 @@
 	auth.subscribe((user) => {
 		if (user) {
 			userRole = user.role;
-			userClientId = user.company_id;
+			userClientId = user.user.company_id;
 		}
 	});
 
