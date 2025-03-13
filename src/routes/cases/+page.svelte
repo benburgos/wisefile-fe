@@ -12,9 +12,13 @@
 	let filtered = [];
 
 	auth.subscribe((user) => {
-		if (user) {
+		if (user && user.user) {
+			// Ensure user is not null
 			userRole = user.role;
 			userClientId = user.user.company_id;
+		} else {
+			userRole = null;
+			userClientId = null;
 		}
 	});
 
@@ -114,7 +118,11 @@
 				{#each filtered as caseDetail}
 					{#if !caseDetail.deleted}
 						<tr class="border-t">
-							<td class="px-2 py-1"><a class="text-blue-800" href={`/cases/${caseDetail._id}`}>{caseDetail.caseNumber}</a></td>
+							<td class="px-2 py-1"
+								><a class="text-blue-800" href={`/cases/${caseDetail._id}`}
+									>{caseDetail.caseNumber}</a
+								></td
+							>
 							<td class="px-2 py-1">{caseDetail.caseType}</td>
 							<td class="px-2 py-1">{caseDetail.status}</td>
 							<td class="px-2 py-1">{caseDetail.subStatus}</td>
