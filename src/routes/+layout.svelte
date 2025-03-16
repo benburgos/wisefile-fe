@@ -5,7 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
 	import { getStoredData, saveToLocalStorage } from '$lib/utils/storage';
-	import { seedData } from '$lib/seed.js';
+	import { seedData } from '$lib/data/seed.js';
 	import SideNav from '$lib/components/Nav/SideNav.svelte';
 
 	let isAuthenticated = null;

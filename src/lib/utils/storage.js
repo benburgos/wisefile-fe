@@ -1,4 +1,4 @@
-import { seedData } from '$lib/seed';
+import { seedData } from '$lib/data/seedData';
 
 // Key for Local Storage
 const STORAGE_KEY = 'wiseFileData';
