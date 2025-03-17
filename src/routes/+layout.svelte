@@ -4,8 +4,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { onDestroy, onMount } from 'svelte';
-	import { getStoredData, saveToLocalStorage } from '$lib/utils/storage';
-	import { seedData } from '$lib/data/seed.js';
+	import { getAllRecords, initializeLocalStorage } from '$lib/localStorage';
+	import { seedData } from '$lib/data/seedData';
 	import SideNav from '$lib/components/Nav/SideNav.svelte';
 
 	let isAuthenticated = null;
@@ -14,29 +14,33 @@
 	let appData = null;
 
 	onMount(() => {
-		unsubscribe = auth.subscribe(({ isAuthenticated: authStatus, role }) => {
+		unsubscribe = auth.subscribe(({ isAuthenticated: authStatus, user }) => {
 			isAuthenticated = authStatus;
-			userRole = role;
+			userRole = user ? user.role : null;
 		});
 
-		// Force Local Storage Initialization
-		let existingData = getStoredData();
-		if (!existingData || !existingData.users || existingData.users.length === 0) {
-			console.log('No stored data found, initializing seed data...');
-			saveToLocalStorage(seedData);
+		// Initialize Local Storage if Needed
+		initializeLocalStorage(seedData);
+
+		// Load Users from Local Storage
+		let existingUsers = getAllRecords('users');
+		if (!existingUsers || existingUsers.length === 0) {
+			console.log('No stored users found, re-initializing seed data...');
+			initializeLocalStorage(seedData);
 			appData = seedData;
 		} else {
-			console.log('Existing data found in localStorage:', existingData);
-			appData = existingData;
+			console.log('Existing users found in localStorage:', existingUsers);
+			appData = { users: existingUsers };
 		}
 	});
 
-	// Redirect if user is not authenticated
+	// Redirect if user is not authenticated (Check if `page.url` exists first)
 	$: if (
 		isAuthenticated !== null &&
 		typeof window !== 'undefined' &&
+		page?.url?.pathname && // Ensure `page.url` exists before accessing `.pathname`
 		!isAuthenticated &&
-		$page.url.pathname !== '/'
+		page.url.pathname !== '/'
 	) {
 		setTimeout(() => {
 			goto('/');
