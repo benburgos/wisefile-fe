@@ -2,15 +2,7 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 function getStoredAuth() {
-	if (!browser)
-		return {
-			isAuthenticated: false,
-			user: null,
-			role: null,
-			token: null,
-			clientId: null,
-			uuid: null
-		};
+	if (!browser) return { isAuthenticated: false, user: null };
 
 	const stored = document.cookie.split('; ').find((row) => row.startsWith('auth='));
 	if (stored) {
@@ -21,49 +13,34 @@ function getStoredAuth() {
 		}
 	}
 
-	return {
-		isAuthenticated: false,
-		user: null,
-		role: null,
-		token: null,
-		clientId: null,
-		uuid: null
-	};
+	return { isAuthenticated: false, user: null };
 }
 
 export const auth = writable(getStoredAuth());
 
-// Ensure updates sync to cookies
 auth.subscribe((value) => {
 	if (browser) {
 		document.cookie = `auth=${encodeURIComponent(JSON.stringify(value))}; path=/; Secure; SameSite=Strict`;
 	}
 });
 
-// Temporary login function
+// Login function (stores `uuid` and `clientId`)
 export function loginUser(userData) {
-	const authData = {
+	auth.set({
 		isAuthenticated: true,
-		user: userData,
-		role: userData.role,
-		clientId: userData.clientId,
-		uuid: userData.uuid,
+		user: {
+			email: userData.email,
+			role: userData.role,
+			clientId: userData.clientId,
+			uuid: userData.uuid
+		},
 		token: 'fake-token'
-	};
-
-	auth.set(authData);
+	});
 }
 
-// Temporary logout function
+// Logout function (clears session)
 export function logoutUser() {
-	auth.set({
-		isAuthenticated: false,
-		user: null,
-		role: null,
-		clientId: null,
-		uuid: null,
-		token: null
-	});
+	auth.set({ isAuthenticated: false, user: null, token: null });
 
 	if (browser) {
 		document.cookie = `auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=Strict`;
