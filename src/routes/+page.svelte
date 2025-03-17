@@ -1,5 +1,5 @@
 <script>
-	import { getStoredData } from '$lib/utils/storage';
+	import { getAllRecords } from '$lib/localStorage';
 	import { loginUser } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
@@ -10,14 +10,8 @@
 	let users = [];
 
 	onMount(() => {
-		const storedData = getStoredData();
-		console.log('Loaded stored data:', storedData); // Debugging output
-
-		if (storedData && storedData.users && storedData.users.length > 0) {
-			users = storedData.users;
-		} else {
-			console.error('No users found in localStorage!');
-		}
+		users = getAllRecords('users');
+		console.log('Loaded stored users:', users); // Debugging output
 	});
 
 	function handleSubmit(event) {
@@ -26,7 +20,12 @@
 		let user = users.find((u) => u.email === email);
 
 		if (user) {
-			loginUser({ email: user.email, role: user.role, company_id: user.company_id });
+			loginUser({
+				email: user.email,
+				role: user.role,
+				clientId: user.company_id, // Ensure correct key name
+				uuid: user._id // Store UUID properly
+			});
 			goto('/dashboard');
 		} else {
 			error = 'Invalid email or password';
