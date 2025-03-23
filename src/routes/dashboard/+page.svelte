@@ -1,149 +1,152 @@
 <script>
 	import { onMount } from 'svelte';
+	import { auth } from '$lib/stores/auth';
+	import { getAllRecords } from '$lib/localStorage';
 	import { goto } from '$app/navigation';
 
-	// Mock Data
-	let unreadMessages = 5;
-	let openCases = 12;
-	let openInvoices = 3;
-	let activeFilings = 18;
-	let activeCollections = 8;
+	let user = null;
+	let userRole = null;
 
-	// Recent Activity Log (Last 5 Updates)
-	let recentActivity = [
-		{
-			caseNumber: 'ABC123-001',
-			description: 'Status updated to Pending',
-			timestamp: '2025-02-21 14:32'
-		},
-		{ caseNumber: 'XYZ789-002', description: 'Payment received', timestamp: '2025-02-21 12:45' },
-		{
-			caseNumber: 'SMITH556-003',
-			description: 'Court date scheduled',
-			timestamp: '2025-02-21 11:30'
-		},
-		{
-			caseNumber: 'ABC123-004',
-			description: 'Filed new eviction request',
-			timestamp: '2025-02-21 10:10'
-		},
-		{ caseNumber: 'XYZ789-005', description: 'Attorney assigned', timestamp: '2025-02-21 09:50' }
-	];
+	let openCases = [];
+	let openInvoices = [];
+	let unreadMessages = [];
 
-	// Recent Invoices
-	let invoices = [
-		{ caseNumber: 'ABC123-001', amount: '$450', status: 'Paid' },
-		{ caseNumber: 'XYZ789-002', amount: '$700', status: 'Unpaid' },
-		{ caseNumber: 'SMITH556-003', amount: '$600', status: 'Paid' },
-		{ caseNumber: 'ABC123-004', amount: '$525', status: 'Unpaid' },
-		{ caseNumber: 'XYZ789-005', amount: '$800', status: 'Paid' }
-	];
+	// Summary counts
+	let metrics = {
+		openCases: 0,
+		openInvoices: 0,
+		unreadMessages: 0
+	};
 
-	// Navigate to Create Filing Page
-	function createFiling() {
-		goto('/cases/new');
+	// Subscribe to user
+	const unsubscribe = auth.subscribe((value) => {
+		user = value?.user;
+		userRole = user?.role;
+	});
+
+	onMount(() => {
+		if (!user) return;
+
+		// Filtered by role internally
+		const cases = getAllRecords('caseRecords', user);
+		const invoices = getAllRecords('invoices', user);
+		const messages = getAllRecords('messages', user);
+
+		// Filter open cases
+		openCases = cases
+			.filter((c) => !c.is_deleted && c.status !== 'Dismissed' && c.status !== 'Dismissed – Paid')
+			.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+			.slice(0, 5);
+
+		// Filter open invoices
+		openInvoices = invoices
+			.filter((inv) => !inv.is_deleted && inv.status !== 'paid')
+			.sort((a, b) => new Date(b.due_date) - new Date(a.due_date))
+			.slice(0, 5);
+
+		// Filter unread messages
+		unreadMessages = messages
+			.filter((msg) => !msg.is_deleted && !msg.is_read && msg.visible_to_users)
+			.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+			.slice(0, 5);
+
+		metrics.openCases = openCases.length;
+		metrics.openInvoices = openInvoices.length;
+		metrics.unreadMessages = unreadMessages.length;
+	});
+
+	function goTo(path) {
+		goto(path);
 	}
 </script>
 
-<section class="p-4 sm:p-6">
-	<!-- Header Row -->
-	<div class="mb-4 flex items-center justify-between sm:mb-6">
-		<h1 class="text-3xl font-bold">Dashboard</h1>
-		<button
-			on:click={createFiling}
-			class="rounded-lg bg-[var(--color-primary)] px-6 py-2 text-white shadow-md transition hover:bg-opacity-90"
-		>
-			New Filing or Collection
-		</button>
-	</div>
+<h1 class="mb-6 text-3xl font-bold">Welcome back{user?.full_name ? `, ${user.full_name}` : ''}!</h1>
 
-	<!-- Top Metrics -->
-	<div class="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-		<div class="rounded-xl bg-[var(--color-primary)] p-4 text-white shadow-md">
-			<p class="text-lg font-semibold">Unread Messages</p>
-			<p class="text-3xl font-bold">{unreadMessages}</p>
-		</div>
-		<div class="rounded-xl bg-[var(--color-primary)] p-4 text-white shadow-md">
-			<p class="text-lg font-semibold">Open Cases</p>
-			<p class="text-3xl font-bold">{openCases}</p>
-		</div>
-		<div class="rounded-xl bg-[var(--color-primary)] p-4 text-white shadow-md">
-			<p class="text-lg font-semibold">Open Invoices</p>
-			<p class="text-3xl font-bold">{openInvoices}</p>
-		</div>
+<!-- Metric Cards -->
+<div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+	<div
+		role="button"
+		on:click={() => goTo('/cases')}
+		class="cursor-pointer rounded-lg border border-gray-200 bg-white p-6 shadow hover:bg-gray-50"
+	>
+		<h2 class="text-lg font-semibold">Open Cases</h2>
+		<p class="mt-2 text-3xl font-bold">{metrics.openCases}</p>
 	</div>
+	<div
+		role="button"
+		on:click={() => goTo('/invoices')}
+		class="cursor-pointer rounded-lg border border-gray-200 bg-white p-6 shadow hover:bg-gray-50"
+	>
+		<h2 class="text-lg font-semibold">Unpaid Invoices</h2>
+		<p class="mt-2 text-3xl font-bold">{metrics.openInvoices}</p>
+	</div>
+	<div
+		role="button"
+		on:click={() => goTo('/messages')}
+		class="cursor-pointer rounded-lg border border-gray-200 bg-white p-6 shadow hover:bg-gray-50"
+	>
+		<h2 class="text-lg font-semibold">Unread Messages</h2>
+		<p class="mt-2 text-3xl font-bold">{metrics.unreadMessages}</p>
+	</div>
+</div>
 
-	<!-- Main Content -->
-	<div class="mt-4 grid gap-6 sm:mt-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-		<!-- Left Column: Case Insights -->
-		<div class="col-span-2 rounded-xl bg-white p-6 shadow-md">
-			<h2 class="mb-4 text-xl font-bold">Case Insights</h2>
-			<div class="grid grid-cols-2 gap-4">
-				<div class="rounded-lg bg-gray-100 p-4">
-					<p class="text-lg font-semibold">Active Filings</p>
-					<p class="text-2xl font-bold">{activeFilings}</p>
+<!-- Recent Cases Section -->
+<div class="mb-8">
+	<h2 class="mb-4 text-xl font-semibold">Recent Cases</h2>
+	{#if openCases.length > 0}
+		<div class="space-y-3">
+			{#each openCases as c}
+				<div
+					class="cursor-pointer rounded border border-gray-200 bg-white p-4 shadow hover:bg-gray-50"
+					on:click={() => goTo(`/cases/${c._id}`)}
+				>
+					<p class="font-semibold">
+						{c.case_number} - {c.status}{c.sub_status ? ` (${c.sub_status})` : ''}
+					</p>
+					<p class="text-sm text-gray-600">{c.description || 'No description provided'}</p>
 				</div>
-				<div class="rounded-lg bg-gray-100 p-4">
-					<p class="text-lg font-semibold">Active Collections</p>
-					<p class="text-2xl font-bold">{activeCollections}</p>
+			{/each}
+		</div>
+	{:else}
+		<p class="text-sm text-gray-500">No recent open cases.</p>
+	{/if}
+</div>
+
+<!-- Invoices Section -->
+<div class="mb-8">
+	<h2 class="mb-4 text-xl font-semibold">Outstanding Invoices</h2>
+	{#if openInvoices.length > 0}
+		<div class="space-y-3">
+			{#each openInvoices as invoice}
+				<div class="rounded border border-gray-200 bg-white p-4 shadow">
+					<p class="font-semibold">{invoice.invoice_number} — ${invoice.amount.toFixed(2)}</p>
+					<p class="text-sm text-gray-600">Status: {invoice.status}</p>
+					<p class="text-sm text-gray-500">
+						Due: {new Date(invoice.due_date).toLocaleDateString()}
+					</p>
 				</div>
-			</div>
-
-			<!-- Recent Activity -->
-			<h2 class="mb-2 mt-6 text-xl font-bold">Recent Activity</h2>
-			<div class="overflow-x-auto rounded-lg border">
-				<table class="w-full bg-white shadow-md">
-					<thead class="bg-gray-200">
-						<tr>
-							<th class="p-2 text-left">Case #</th>
-							<th class="p-2 text-left">Description</th>
-							<th class="p-2 text-left">Timestamp</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each recentActivity as activity}
-							<tr class="border-t">
-								<td class="p-2">{activity.caseNumber}</td>
-								<td class="p-2">{activity.description}</td>
-								<td class="p-2">{activity.timestamp}</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
+			{/each}
 		</div>
+	{:else}
+		<p class="text-sm text-gray-500">No unpaid invoices.</p>
+	{/if}
+</div>
 
-		<!-- Right Column: Recent Invoices (Expanded) -->
-		<div class="col-span-1 rounded-xl bg-white p-6 shadow-md">
-			<h2 class="mb-4 text-xl font-bold">Recent Invoices</h2>
-			<div class="overflow-x-auto rounded-lg border">
-				<table class="w-full bg-white shadow-md">
-					<thead class="bg-gray-200">
-						<tr>
-							<th class="p-2 text-left">Case #</th>
-							<th class="p-2 text-left">Amount</th>
-							<th class="p-2 text-left">Status</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each invoices as invoice}
-							<tr class="border-t">
-								<td class="p-2">{invoice.caseNumber}</td>
-								<td class="p-2">{invoice.amount}</td>
-								<td class="p-2">
-									<span
-										class="rounded-full px-3 py-1 text-sm text-white"
-										class:!bg-green-500={invoice.status === 'Paid'}
-										class:!bg-red-500={invoice.status === 'Unpaid'}
-									>
-										{invoice.status}
-									</span>
-								</td>
-							</tr>
-						{/each}
-					</tbody>
-				</table>
-			</div>
+<!-- Messages Section -->
+<div>
+	<h2 class="mb-4 text-xl font-semibold">Unread Messages</h2>
+	{#if unreadMessages.length > 0}
+		<div class="space-y-3">
+			{#each unreadMessages as msg}
+				<div class="rounded border border-gray-200 bg-white p-4 shadow">
+					<p class="font-semibold">{msg.content?.slice(0, 60)}...</p>
+					<p class="text-sm text-gray-500">
+						Sent on {new Date(msg.created_at).toLocaleDateString()}
+					</p>
+				</div>
+			{/each}
 		</div>
-	</div>
-</section>
+	{:else}
+		<p class="text-sm text-gray-500">No unread messages.</p>
+	{/if}
+</div>

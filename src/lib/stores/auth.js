@@ -30,10 +30,11 @@ export function loginUser(userData) {
 	auth.set({
 		isAuthenticated: true,
 		user: {
+			uuid: userData.uuid,
+			full_name: userData.full_name,
+			clientId: userData.clientId,
 			email: userData.email,
 			role: userData.role,
-			clientId: userData.clientId,
-			uuid: userData.uuid
 		},
 		token: 'fake-token'
 	});
