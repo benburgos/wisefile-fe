@@ -30,7 +30,7 @@ export function loginUser(userData) {
 	auth.set({
 		isAuthenticated: true,
 		user: {
-			uuid: userData.uuid,
+			id: userData.id,
 			full_name: userData.full_name,
 			clientId: userData.clientId,
 			email: userData.email,

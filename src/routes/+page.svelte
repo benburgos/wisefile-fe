@@ -22,7 +22,7 @@
 		let user = users.find((u) => u.email === email);
 		if (user) {
 			loginUser({
-				uuid: user._id,
+				id: user._id,
 				full_name: user.full_name,
 				clientId: user.company_id,
 				email: user.email,
