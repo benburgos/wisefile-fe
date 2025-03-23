@@ -5,9 +5,7 @@
 	import { goto } from '$app/navigation';
 
 	let userRole = null;
-	let unsubscribe;
-
-	unsubscribe = auth.subscribe(({ user }) => {
+	let unsubscribe = auth.subscribe(({ user }) => {
 		userRole = user?.role ?? null;
 	});
 
@@ -18,23 +16,35 @@
 	function nav(path) {
 		goto(path);
 	}
+
+	const navItems = [
+		{
+			path: '/dashboard',
+			label: 'Dashboard',
+			roles: ['admin', 'operations', 'client', 'attorney']
+		},
+		{ path: '/cases', label: 'Cases', roles: ['admin', 'operations', 'client', 'attorney'] },
+		{ path: '/invoices', label: 'Invoices', roles: ['admin', 'operations', 'client'] },
+		{ path: '/messages', label: 'Messages', roles: ['admin', 'operations', 'client', 'attorney'] },
+		{ path: '/documents', label: 'Documents', roles: ['admin', 'operations'] },
+		{ path: '/activity', label: 'Activity Log', roles: ['admin', 'operations'] }
+	];
 </script>
 
 <nav class="space-y-4 p-4">
 	<ul class="space-y-2">
-		<li><a on:click={() => nav('/dashboard')}>Dashboard</a></li>
-		<li><a on:click={() => nav('/cases')}>Cases</a></li>
-
-		{#if userRole !== 'attorney' && userRole !== 'client'}
-			<li><a on:click={() => nav('/invoices')}>Invoices</a></li>
-			<li><a on:click={() => nav('/messages')}>Messages</a></li>
-			<li><a on:click={() => nav('/documents')}>Documents</a></li>
-			<li><a on:click={() => nav('/activity')}>Activity Log</a></li>
-		{:else if userRole === 'client'}
-			<li><a on:click={() => nav('/messages')}>Messages</a></li>
-			<li><a on:click={() => nav('/invoices')}>Invoices</a></li>
-		{:else if userRole === 'attorney'}
-			<li><a on:click={() => nav('/messages')}>Messages</a></li>
-		{/if}
+		{#each navItems as { path, label, roles }}
+			{#if roles.includes(userRole)}
+				<li>
+					<button
+						type="button"
+						on:click={() => nav(path)}
+						class="w-full rounded text-left text-white hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+					>
+						{label}
+					</button>
+				</li>
+			{/if}
+		{/each}
 	</ul>
 </nav>
