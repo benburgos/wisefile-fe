@@ -1,85 +1,40 @@
 <script>
-	import { auth, logoutUser } from '$lib/stores/auth';
+	import { auth } from '$lib/stores/auth';
+	import { onDestroy } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
-	let isAuthenticated = false;
 	let userRole = null;
+	let unsubscribe;
 
-	// Subscribe to auth store and ensure userRole updates correctly
-	auth.subscribe(({ isAuthenticated: authStatus, role }) => {
-		isAuthenticated = authStatus;
-		userRole = role || null;
+	unsubscribe = auth.subscribe(({ user }) => {
+		userRole = user?.role ?? null;
 	});
 
-	// Navigation links based on roles
-	const navLinks = {
-		admin: [
-			{ name: 'Dashboard', path: '/dashboard' },
-			{ name: 'Cases', path: '/cases' },
-			{ name: 'Documents', path: '/documents' },
-			{ name: 'Invoices', path: '/invoices' },
-			{ name: 'Messaging', path: '/messaging' },
-			{ name: 'Analytics', path: '/analytics' },
-			{ name: 'Admin Panel', path: '/admin' },
-			{ name: 'Settings', path: '/settings' }
-		],
-		ops: [
-			{ name: 'Dashboard', path: '/dashboard' },
-			{ name: 'Cases', path: '/cases' },
-			{ name: 'Documents', path: '/documents' },
-			{ name: 'Invoices', path: '/invoices' },
-			{ name: 'Messaging', path: '/messaging' },
-			{ name: 'Settings', path: '/settings' }
-		],
-		lawyer: [
-			{ name: 'Dashboard', path: '/dashboard' },
-			{ name: 'Cases', path: '/cases' },
-			{ name: 'Documents', path: '/documents' },
-			{ name: 'Messaging', path: '/messaging' },
-			{ name: 'Settings', path: '/settings' }
-		],
-		client: [
-			{ name: 'Dashboard', path: '/dashboard' },
-			{ name: 'Cases', path: '/cases' },
-			{ name: 'Documents', path: '/documents' },
-			{ name: 'Invoices', path: '/invoices' },
-			{ name: 'Messaging', path: '/messaging' },
-			{ name: 'Analytics', path: '/analytics' },
-			{ name: 'Settings', path: '/settings' }
-		]
-	};
+	onDestroy(() => {
+		if (unsubscribe) unsubscribe();
+	});
+
+	function nav(path) {
+		goto(path);
+	}
 </script>
 
-<nav
-	class="flex h-screen w-64 flex-col bg-[var(--color-sidebar)] text-[var(--color-sidebar-text)] shadow-lg"
->
-	<!-- Navigation Links -->
-	<ul class="flex-grow space-y-1 p-4">
-		{#if userRole && navLinks[userRole]?.length}
-			{#each navLinks[userRole] as link}
-				<li>
-					<a
-						href={link.path}
-						class="block rounded-md px-4 py-2 font-medium transition-all duration-300 hover:bg-[var(--color-sidebar-hover)]"
-						class:font-bold={$page.url.pathname === link.path}
-						class:active-link={$page.url.pathname === link.path}
-					>
-						{link.name}
-					</a>
-				</li>
-			{/each}
-		{:else}
-			<li class="p-4 text-sm italic text-gray-400">No links available</li>
+<nav class="space-y-4 p-4">
+	<ul class="space-y-2">
+		<li><a on:click={() => nav('/dashboard')}>Dashboard</a></li>
+		<li><a on:click={() => nav('/cases')}>Cases</a></li>
+
+		{#if userRole !== 'attorney' && userRole !== 'client'}
+			<li><a on:click={() => nav('/invoices')}>Invoices</a></li>
+			<li><a on:click={() => nav('/messages')}>Messages</a></li>
+			<li><a on:click={() => nav('/documents')}>Documents</a></li>
+			<li><a on:click={() => nav('/activity')}>Activity Log</a></li>
+		{:else if userRole === 'client'}
+			<li><a on:click={() => nav('/messages')}>Messages</a></li>
+			<li><a on:click={() => nav('/invoices')}>Invoices</a></li>
+		{:else if userRole === 'attorney'}
+			<li><a on:click={() => nav('/messages')}>Messages</a></li>
 		{/if}
 	</ul>
-
-	<!-- Logout Button -->
-	<div class="p-4">
-		<button
-			on:click={logoutUser}
-			class="w-full rounded-lg bg-[var(--color-sidebar)] px-4 py-2 font-semibold text-white transition-all duration-300 hover:bg-[var(--color-sidebar-hover)]"
-		>
-			Logout
-		</button>
-	</div>
 </nav>
