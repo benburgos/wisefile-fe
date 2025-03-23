@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import { goto } from '$app/navigation';
 import { browser } from '$app/environment';
 
 function getStoredAuth() {
@@ -44,5 +45,6 @@ export function logoutUser() {
 
 	if (browser) {
 		document.cookie = `auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=Strict`;
+		goto('/'); // Redirect to login page
 	}
 }
