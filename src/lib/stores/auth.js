@@ -38,8 +38,6 @@ export function loginUser(userData) {
 		},
 		token: 'fake-token'
 	});
-
-	console.log('User logged in:', userData);
 }
 
 // Logout function (clears session)
