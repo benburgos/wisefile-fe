@@ -34,10 +34,12 @@ export function loginUser(userData) {
 			full_name: userData.full_name,
 			clientId: userData.clientId,
 			email: userData.email,
-			role: userData.role,
+			role: userData.role
 		},
 		token: 'fake-token'
 	});
+
+	console.log('User logged in:', userData);
 }
 
 // Logout function (clears session)

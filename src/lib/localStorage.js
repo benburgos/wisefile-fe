@@ -5,19 +5,19 @@ export function getAllRecords(model, user = null) {
 	let records = JSON.parse(localStorage.getItem(model)) || [];
 
 	if (!user) return records; // No filtering if no user context
-
+	
 	switch (user.role) {
 		case 'admin':
 			return records; // Admins see everything
 
 		case 'operations':
-			return records.filter((record) => record.assigned_operator === user._id);
+			return records.filter((record) => record.assigned_operator === user.id);
 
 		case 'client':
-			return records.filter((record) => record.client_id === user.company_id);
+			return records.filter((record) => record.client_id === user.clientId);
 
 		case 'attorney':
-			return records.filter((record) => record.assigned_attorney === user._id);
+			return records.filter((record) => record.assigned_attorney === user.id);
 
 		default:
 			return []; // Unknown roles get nothing

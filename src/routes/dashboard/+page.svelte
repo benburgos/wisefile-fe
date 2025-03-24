@@ -10,7 +10,7 @@
 	let visibleCases = [];
 	let unpaidInvoices = [];
 	let unreadMessages = [];
-	let caseActivity = [];
+	let activityLog = [];
 
 	let metrics = {
 		openCases: 0,
@@ -34,27 +34,59 @@
 		const messages = getAllRecords('messages', user);
 		const activity = getAllRecords('activityLogs', user);
 
+		// Filter visible cases
 		visibleCases = caseRecords.filter(
 			(c) => !c.is_deleted && c.status !== 'Dismissed' && c.status !== 'Dismissed – Paid'
 		);
 		metrics.openCases = visibleCases.length;
 
-		if (userRole !== 'attorney') {
-			unpaidInvoices = invoiceRecords.filter((i) => !i.is_deleted && i.status !== 'paid');
-			metrics.unpaidInvoices = unpaidInvoices.length;
-		}
-
+		// Filter unread messages
 		unreadMessages = messages.filter(
 			(m) =>
 				!m.is_deleted &&
 				m.visible_to_users &&
-				m.recipient_ids?.includes(user.uuid) &&
-				!m.read_by?.includes(user.uuid)
+				m.recipient_ids?.includes(user.id) &&
+				!m.read_by?.includes(user.id)
 		);
 		metrics.unreadMessages = unreadMessages.length;
 
-		caseActivity = activity
-			.filter((a) => !a.is_deleted && (a.action_type === 'create' || a.action_type === 'update'))
+		// Filter unpaid invoices
+		if (userRole !== 'attorney') {
+			let invoiceCaseIds = [];
+			if (userRole === 'operations') {
+				const assignedCases = caseRecords.filter((c) => c.assigned_operator === user.id);
+				invoiceCaseIds = assignedCases.map((c) => c._id);
+				unpaidInvoices = invoiceRecords.filter(
+					(i) => !i.is_deleted && i.status !== 'paid' && invoiceCaseIds.includes(i.case_id)
+				);
+			} else if (userRole === 'client') {
+				unpaidInvoices = invoiceRecords.filter(
+					(i) => !i.is_deleted && i.status !== 'paid' && i.client_id === user.clientId
+				);
+			} else {
+				unpaidInvoices = invoiceRecords.filter((i) => !i.is_deleted && i.status !== 'paid');
+			}
+			metrics.unpaidInvoices = unpaidInvoices.length;
+		}
+
+		// Filter activity log
+		activityLog = activity
+			.filter((a) => {
+				if (a.is_deleted) return false;
+
+				if (userRole === 'admin') return true;
+
+				if (a.entity_type !== 'caseRecord') return false;
+
+				const caseMatch = caseRecords.find((c) => c._id === a.entity_id);
+				if (!caseMatch) return false;
+
+				if (userRole === 'attorney') return caseMatch.assigned_attorney === user.id;
+				if (userRole === 'client') return caseMatch.client_id === user.clientId;
+				if (userRole === 'operations') return caseMatch.assigned_operator === user.id;
+
+				return false;
+			})
 			.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 			.slice(0, 20)
 			.map((a) => {
@@ -134,9 +166,9 @@
 	</div>
 </div>
 
-<!-- Case Activity Table -->
+<!-- Activity Log Table -->
 <div>
-	<h2 class="mb-2 text-xl font-semibold">Case Activity</h2>
+	<h2 class="mb-2 text-xl font-semibold">Activity</h2>
 	<div class="max-h-[calc(100vh-300px)] overflow-auto rounded-lg border shadow">
 		<table class="min-w-full table-auto">
 			<thead class="sticky top-0 border-b bg-white">
@@ -148,7 +180,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each caseActivity as a}
+				{#each activityLog as a}
 					<tr class="odd:bg-gray-50">
 						<td class="px-4 py-2 capitalize">{a.action_type}</td>
 						<td class="px-4 py-2">{a.entity_label}</td>
