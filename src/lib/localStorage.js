@@ -25,17 +25,29 @@ export function getAllRecords(model, user = null) {
 }
 
 export function getStoredData() {
-	if (typeof localStorage !== 'undefined') {
-		const raw = localStorage.getItem('appData');
-		if (!raw) return {};
-		try {
-			return JSON.parse(raw);
-		} catch (e) {
-			console.error('Failed to parse localStorage appData:', e);
-			return {};
-		}
-	}
-	return {};
+	if (typeof localStorage === 'undefined') return {};
+
+	const keys = [
+		'users',
+		'clients',
+		'properties',
+		'tenants',
+		'documents',
+		'invoices',
+		'fees',
+		'messages',
+		'caseRecords',
+		'activityLogs'
+	];
+
+	const data = {};
+
+	keys.forEach((key) => {
+		const raw = localStorage.getItem(key);
+		data[key] = raw ? JSON.parse(raw) : [];
+	});
+
+	return data;
 }
 
 // Fetch a single record by ID (while respecting filtering)
