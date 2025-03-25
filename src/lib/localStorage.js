@@ -50,6 +50,14 @@ export function getStoredData() {
 	return data;
 }
 
+export function saveToLocalStorage(data) {
+	if (typeof localStorage === 'undefined') return;
+
+	for (const [key, value] of Object.entries(data)) {
+		localStorage.setItem(key, JSON.stringify(value));
+	}
+}
+
 // Fetch a single record by ID (while respecting filtering)
 export function getRecordById(model, id, user = null) {
 	const records = getAllRecords(model, user);
