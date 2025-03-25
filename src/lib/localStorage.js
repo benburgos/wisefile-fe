@@ -5,7 +5,7 @@ export function getAllRecords(model, user = null) {
 	let records = JSON.parse(localStorage.getItem(model)) || [];
 
 	if (!user) return records; // No filtering if no user context
-	
+
 	switch (user.role) {
 		case 'admin':
 			return records; // Admins see everything
@@ -22,6 +22,20 @@ export function getAllRecords(model, user = null) {
 		default:
 			return []; // Unknown roles get nothing
 	}
+}
+
+export function getStoredData() {
+	if (typeof localStorage !== 'undefined') {
+		const raw = localStorage.getItem('appData');
+		if (!raw) return {};
+		try {
+			return JSON.parse(raw);
+		} catch (e) {
+			console.error('Failed to parse localStorage appData:', e);
+			return {};
+		}
+	}
+	return {};
 }
 
 // Fetch a single record by ID (while respecting filtering)
@@ -64,5 +78,5 @@ export function initializeLocalStorage(seedData) {
 }
 // Clear local storage (for testing or reset purposes
 export function clearLocalStorage() {
-    localStorage.clear();
+	localStorage.clear();
 }
