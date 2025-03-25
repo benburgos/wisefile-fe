@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth';
 	import { goto } from '$app/navigation';
-	import { getAllRecords } from '$lib/localStorage';
+	import { getStoredData } from '$lib/localStorage';
 
 	let user = null;
 	let userRole = null;
@@ -21,26 +21,25 @@
 	let caseRecords = [];
 	let invoiceRecords = [];
 
-	auth.subscribe((value) => {
-		user = value?.user;
-		userRole = user?.role;
-	});
-
 	onMount(() => {
+		auth.subscribe((value) => {
+			user = value?.user;
+			userRole = user?.role;
+		});
+
 		if (!user) return;
 
-		caseRecords = getAllRecords('caseRecords', user);
-		invoiceRecords = getAllRecords('invoices', user);
-		const messages = getAllRecords('messages', user);
-		const activity = getAllRecords('activityLogs', user);
+		const allData = getStoredData();
+		caseRecords = allData.caseRecords || [];
+		invoiceRecords = allData.invoices || [];
+		const messages = allData.messages || [];
+		const activity = allData.activityLogs || [];
 
-		// Filter visible cases
 		visibleCases = caseRecords.filter(
 			(c) => !c.is_deleted && c.status !== 'Dismissed' && c.status !== 'Dismissed – Paid'
 		);
 		metrics.openCases = visibleCases.length;
 
-		// Filter unread messages
 		unreadMessages = messages.filter(
 			(m) =>
 				!m.is_deleted &&
@@ -50,7 +49,6 @@
 		);
 		metrics.unreadMessages = unreadMessages.length;
 
-		// Filter unpaid invoices
 		if (userRole !== 'attorney') {
 			let invoiceCaseIds = [];
 			if (userRole === 'operations') {
@@ -69,22 +67,16 @@
 			metrics.unpaidInvoices = unpaidInvoices.length;
 		}
 
-		// Filter activity log
 		activityLog = activity
 			.filter((a) => {
 				if (a.is_deleted) return false;
-
 				if (userRole === 'admin') return true;
-
 				if (a.entity_type !== 'caseRecord') return false;
-
 				const caseMatch = caseRecords.find((c) => c._id === a.entity_id);
 				if (!caseMatch) return false;
-
 				if (userRole === 'attorney') return caseMatch.assigned_attorney === user.id;
 				if (userRole === 'client') return caseMatch.client_id === user.clientId;
 				if (userRole === 'operations') return caseMatch.assigned_operator === user.id;
-
 				return false;
 			})
 			.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
