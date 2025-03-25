@@ -106,7 +106,13 @@
 </h1>
 
 <!-- Metrics Row -->
-<div class="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+<div
+	class={`mb-8 grid gap-6 ${
+		userRole === 'attorney'
+			? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-2'
+			: 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'
+	}`}
+>
 	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow">
 		<h2 class="text-lg font-semibold">Open Cases</h2>
 		{#if metrics.openCases > 0}
