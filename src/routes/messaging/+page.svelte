@@ -1,252 +1,321 @@
 <script>
-	import { onMount } from 'svelte';
+	import { onMount, afterUpdate, onDestroy } from 'svelte';
 	import { auth } from '$lib/stores/auth';
-	import { goto } from '$app/navigation';
+	import { getStoredData } from '$lib/localStorage';
 
-	let statusFilter = 'all'; // Default filter
-	let searchQuery = '';
-	let userRole = null;
-	let newMessage = '';
-	let selectedConversation = null;
-
-	// Mock Conversations
-	let conversations = [
-		{
-			caseId: 'ABC123-001',
-			caseNumber: 'ABC123-001',
-			client: 'ABC Properties',
-			status: 'open',
-			messages: [
-				{
-					sender: 'Client',
-					content: 'Need status update.',
-					timestamp: '2025-02-22T14:15:00Z',
-					read: false
-				},
-				{
-					sender: 'Ops',
-					content: 'Received, checking now.',
-					timestamp: '2025-02-22T15:00:00Z',
-					read: true
-				}
-			]
-		},
-		{
-			caseId: 'XYZ789-002',
-			caseNumber: 'XYZ789-002',
-			client: 'XYZ Realty',
-			status: 'closed',
-			messages: [
-				{
-					sender: 'Client',
-					content: 'Payment received?',
-					timestamp: '2025-02-20T11:00:00Z',
-					read: true
-				},
-				{ sender: 'Ops', content: 'Yes, confirmed.', timestamp: '2025-02-20T11:15:00Z', read: true }
-			]
-		},
-		{
-			caseId: 'LMN555-003',
-			caseNumber: 'LMN555-003',
-			client: 'LMN Rentals',
-			status: 'open',
-			messages: [
-				{
-					sender: 'Ops',
-					content: 'Court date set for next Tuesday.',
-					timestamp: '2025-02-19T09:45:00Z',
-					read: false
-				}
-			]
-		}
-	];
-
-	let filteredConversations = [...conversations];
-
-	auth.subscribe(({ role }) => {
-		userRole = role || null;
-	});
-
-	// Pre-sort: Unread messages first, then newest messages
-	onMount(() => {
-		conversations.forEach((conv) => {
-			conv.messages.sort((a, b) => {
-				if (!a.read && b.read) return -1;
-				if (a.read && !b.read) return 1;
-				return new Date(b.timestamp) - new Date(a.timestamp);
-			});
-		});
-		filterConversations();
-	});
-
-	// Open conversation and mark messages as read
-	function openConversation(conversation) {
-		selectedConversation = conversation;
-		selectedConversation.messages.forEach((msg) => (msg.read = true));
+	function saveToLocalStorage(key, value) {
+		localStorage.setItem(key, JSON.stringify(value));
 	}
 
-	// Send a new message
-	function sendMessage() {
-		if (!selectedConversation || !newMessage.trim()) return;
+	let user = null;
+	let users = [];
+	let caseRecords = [];
+	let groupedThreads = [];
+	let selectedCaseId = null;
+	let selectedMessages = [];
+	let replyContent = '';
+	let selectedRecipients = [];
+	let searchTerm = '';
+	let currentCase = null;
+	let messageContainer;
+	let dropdownEl;
 
-		const newMsg = {
-			sender: userRole === 'client' ? 'Client' : 'Ops/Admin',
-			content: newMessage.trim(),
-			timestamp: new Date().toISOString(),
-			read: false
+	function handleClickOutsideDropdown(event) {
+		if (dropdownEl && !dropdownEl.contains(event.target)) {
+			const openDropdown = document.querySelector('details[open]');
+			if (openDropdown) openDropdown.removeAttribute('open');
+		}
+	}
+
+	onMount(() => {
+		auth.subscribe((value) => {
+			user = value?.user;
+			if (user) {
+				loadMessages();
+			}
+		});
+		document.addEventListener('click', handleClickOutsideDropdown);
+	});
+
+	onDestroy(() => {
+		document.removeEventListener('click', handleClickOutsideDropdown);
+	});
+
+	afterUpdate(() => {
+		if (messageContainer) {
+			messageContainer.scrollTop = messageContainer.scrollHeight;
+		}
+	});
+
+	function loadMessages() {
+		const data = getStoredData();
+		const allMessages = data.messages || [];
+		users = data.users || [];
+		caseRecords = data.caseRecords || [];
+
+		const filtered = allMessages.filter(
+			(msg) => msg.sender_id === user.id || msg.recipient_ids.includes(user.id)
+		);
+
+		const threads = Object.values(
+			filtered.reduce((acc, msg) => {
+				if (!acc[msg.case_id]) acc[msg.case_id] = [];
+				acc[msg.case_id].push(msg);
+				return acc;
+			}, {})
+		).map((messages) => {
+			const sorted = messages.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+			return {
+				case_id: sorted[0].case_id,
+				messages: sorted,
+				latest: sorted.at(-1)
+			};
+		});
+
+		groupedThreads = threads
+			.filter((t) => {
+				const caseName = getCaseName(t.case_id).toLowerCase();
+				const sender = getSenderName(t.latest.sender_id).toLowerCase();
+				const content = t.latest.content.toLowerCase();
+				return (
+					caseName.includes(searchTerm.toLowerCase()) ||
+					sender.includes(searchTerm.toLowerCase()) ||
+					content.includes(searchTerm.toLowerCase())
+				);
+			})
+			.sort((a, b) => new Date(b.latest.created_at) - new Date(a.latest.created_at));
+	}
+
+	function getSenderName(sender_id) {
+		return users.find((u) => u._id === sender_id)?.full_name || 'Unknown';
+	}
+
+	function getCaseName(caseId) {
+		return caseRecords.find((c) => c._id === caseId)?.case_number || 'Unknown Case';
+	}
+
+	function getCaseById(caseId) {
+		return caseRecords.find((c) => c._id === caseId);
+	}
+
+	function getRecipientNames(recipient_ids) {
+		return recipient_ids.map(getSenderName).join(', ');
+	}
+
+	function isThreadRead(thread) {
+		const latest = thread.latest;
+		return latest.read_by.includes(user.id) || latest.sender_id === user.id;
+	}
+
+	function selectThread(caseId) {
+		selectedCaseId = caseId;
+		currentCase = getCaseById(caseId);
+		const allMessages = getStoredData().messages || [];
+		selectedMessages = allMessages
+			.filter((msg) => msg.case_id === caseId)
+			.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+		const unreadMessages = selectedMessages.filter(
+			(msg) => !msg.read_by.includes(user.id) && msg.sender_id !== user.id
+		);
+
+		if (unreadMessages.length > 0) {
+			setTimeout(() => {
+				const updated = allMessages.map((msg) => {
+					if (
+						msg.case_id === caseId &&
+						!msg.read_by.includes(user.id) &&
+						msg.sender_id !== user.id
+					) {
+						return { ...msg, read_by: [...msg.read_by, user.id] };
+					}
+					return msg;
+				});
+				saveToLocalStorage('messages', updated);
+				selectedMessages = updated
+					.filter((msg) => msg.case_id === caseId)
+					.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+			}, 1000);
+		}
+
+		const recipientsInThread = [
+			...new Set(
+				selectedMessages.flatMap((msg) =>
+					[msg.sender_id, ...msg.recipient_ids].filter((id) => id !== user.id)
+				)
+			)
+		];
+
+		const companyUsers = users.filter(
+			(u) => u.company_id && u.company_id === currentCase?.client_id && u._id !== user.id
+		);
+
+		const validRecipientIds = [
+			...new Set([...recipientsInThread, ...companyUsers.map((u) => u._id)])
+		];
+		selectedRecipients = validRecipientIds;
+		loadMessages();
+	}
+
+	function toggleRecipient(id) {
+		selectedRecipients = selectedRecipients.includes(id)
+			? selectedRecipients.filter((r) => r !== id)
+			: [...selectedRecipients, id];
+	}
+
+	function sendMessage() {
+		if (!replyContent.trim() || selectedRecipients.length === 0) return;
+		const allMessages = getStoredData().messages || [];
+
+		const newMessage = {
+			_id: crypto.randomUUID(),
+			case_id: selectedCaseId,
+			sender_id: user.id,
+			recipient_ids: selectedRecipients,
+			message_type: 'text',
+			content: replyContent.trim(),
+			attachments: [],
+			created_at: new Date(),
+			updated_at: new Date(),
+			is_read: false,
+			read_by: [user.id],
+			is_active: true,
+			is_deleted: false,
+			visible_to_users: true
 		};
 
-		selectedConversation.messages.push(newMsg);
-		newMessage = '';
-
-		// Ensure UI updates
-		selectedConversation = { ...selectedConversation };
-	}
-
-	// Filter conversations by search and status
-	function filterConversations() {
-		filteredConversations = conversations
-			.filter(
-				(conv) =>
-					(statusFilter === 'all' || conv.status === statusFilter) &&
-					conv.caseNumber.toLowerCase().includes(searchQuery.toLowerCase())
-			)
-			.sort((a, b) => {
-				const aUnread = a.messages.some((msg) => !msg.read);
-				const bUnread = b.messages.some((msg) => !msg.read);
-				if (aUnread && !bUnread) return -1;
-				if (!aUnread && bUnread) return 1;
-				return (
-					new Date(b.messages[b.messages.length - 1].timestamp) -
-					new Date(a.messages[a.messages.length - 1].timestamp)
-				);
-			});
+		allMessages.push(newMessage);
+		saveToLocalStorage('messages', allMessages);
+		replyContent = '';
+		selectThread(selectedCaseId);
 	}
 </script>
 
-<section class="p-6">
-	<div class="mb-4 flex items-center justify-between">
-		<h1 class="text-3xl font-bold">Messaging</h1>
-	</div>
+<section class="flex h-[calc(100vh-5rem)] flex-col space-y-4 p-4">
+	<input
+		type="text"
+		class="input input-bordered w-full rounded-lg bg-gray-50"
+		placeholder="Search by case, sender, or content..."
+		bind:value={searchTerm}
+		on:input={loadMessages}
+	/>
 
-	<div class="grid grid-cols-3 gap-6">
-		<!-- Conversations List -->
-		<div class="col-span-1 rounded-lg bg-white p-4 shadow-md">
-			<h2 class="mb-3 text-lg font-bold">Conversations</h2>
-
-			<!-- Search Bar -->
-			<input
-				type="text"
-				placeholder="Search case numbers..."
-				bind:value={searchQuery}
-				on:input={filterConversations}
-				class="mb-3 w-full rounded-lg border px-3 py-2"
-			/>
-
-			<!-- Open/Closed Filter (Moved Below Search) -->
-			<div class="mb-3 flex gap-4">
-				<label class="flex items-center">
-					<input
-						type="radio"
-						bind:group={statusFilter}
-						value="all"
-						on:change={filterConversations}
-					/>
-					<span class="ml-2">All</span>
-				</label>
-				<label class="flex items-center">
-					<input
-						type="radio"
-						bind:group={statusFilter}
-						value="open"
-						on:change={filterConversations}
-					/>
-					<span class="ml-2">Open</span>
-				</label>
-				<label class="flex items-center">
-					<input
-						type="radio"
-						bind:group={statusFilter}
-						value="closed"
-						on:change={filterConversations}
-					/>
-					<span class="ml-2">Closed</span>
-				</label>
-			</div>
-
-			<hr class="mb-3 border-t border-gray-300" />
-
-			<!-- Conversations List -->
-			<ul class="h-[400px] overflow-y-auto">
-				{#each filteredConversations as conversation}
-					<li>
-						<button
-							class="w-full rounded-lg px-4 py-2 text-left transition-all"
-							class:bg-gray-200={selectedConversation?.caseId === conversation.caseId}
-							on:click={() => openConversation(conversation)}
-						>
-							<span
-								class="font-semibold"
-								class:text-black={!conversation.messages.every((msg) => msg.read)}
-								class:text-gray-500={conversation.messages.every((msg) => msg.read)}
-							>
-								{conversation.caseNumber}
-							</span>
-							<p class="text-sm text-gray-500">
-								{conversation.messages[conversation.messages.length - 1].content.slice(0, 40)}...
-							</p>
-						</button>
-					</li>
-				{/each}
-			</ul>
+	<div class="grid flex-1 grid-cols-1 gap-4 overflow-hidden md:grid-cols-3">
+		<div class="overflow-y-auto border-r bg-white py-1 pb-4 pl-2 pr-2">
+			{#each groupedThreads as thread}
+				<button
+					type="button"
+					class="hover:bg-base-200 w-full cursor-pointer border-b px-2 py-3 text-left transition"
+					class:bg-base-300={thread.case_id === selectedCaseId}
+					class:text-gray-400={isThreadRead(thread)}
+					on:click={() => selectThread(thread.case_id)}
+				>
+					<div class="flex items-center justify-between">
+						<div class="flex items-center font-medium">
+							{#if !isThreadRead(thread)}<span class="unread-indicator"></span>{/if}
+							{getSenderName(thread.latest.sender_id)}
+						</div>
+						<div class="whitespace-nowrap text-xs text-gray-500">
+							{new Date(thread.latest.created_at).toLocaleString()}
+						</div>
+					</div>
+					<div class="truncate text-sm text-gray-600">
+						<strong>{getCaseName(thread.case_id)}</strong>: {thread.latest.content}
+					</div>
+				</button>
+			{/each}
 		</div>
 
-		<!-- Conversation Details -->
-		<div class="col-span-2 rounded-lg bg-white p-4 shadow-md">
-			{#if selectedConversation}
-				<div class="flex items-center justify-between border-b pb-2">
-					<h2 class="text-lg font-bold">Conversation for {selectedConversation.caseNumber}</h2>
-					<a href={`/cases/${selectedConversation.caseId}`} class="text-blue-500 underline"
-						>Go to Case Detail</a
-					>
-				</div>
-
-				<div class="mt-4 h-[300px] overflow-y-auto rounded-lg border p-3">
-					{#each selectedConversation.messages as message}
-						<div
-							class="mb-2 rounded-lg p-2"
-							class:bg-gray-100={message.sender !== userRole}
-							class:bg-blue-100={message.sender === userRole}
-						>
-							<p class="text-sm">
-								<strong>{message.sender}:</strong>
-								{message.content}
-							</p>
-							<p class="text-xs text-gray-500">{new Date(message.timestamp).toLocaleString()}</p>
+		<div class="col-span-2 flex flex-col overflow-hidden rounded-lg border bg-white p-4">
+			<div class="flex-1 space-y-4 overflow-y-auto px-2 pb-4" bind:this={messageContainer}>
+				{#each selectedMessages as msg}
+					<div class="flex flex-col items-start" class:items-end={msg.sender_id === user.id}>
+						<div class="mb-1 text-xs italic text-gray-400">
+							{new Date(msg.created_at).toLocaleString()}
 						</div>
-					{/each}
-				</div>
+						<div
+							class={`max-w-xs whitespace-pre-wrap rounded-xl p-3 shadow md:max-w-md ${msg.sender_id === user.id ? 'bg-blue-100 text-black' : 'bg-gray-100 text-black'} ml-2 mr-2`}
+						>
+							<div class="mb-1 text-xs font-semibold">@{getRecipientNames(msg.recipient_ids)}</div>
+							<div class="text-sm">{msg.content}</div>
+						</div>
+						<div class="mt-1 text-[11px] italic text-gray-500">
+							{msg.sender_id === user.id
+								? 'Sent by You'
+								: msg.read_by.includes(user.id)
+									? 'Read'
+									: 'Unread'}
+						</div>
+					</div>
+				{/each}
+			</div>
 
-				<!-- Message Input -->
-				<div class="mt-4 flex gap-2">
-					<input
-						type="text"
-						bind:value={newMessage}
-						placeholder="Type your message..."
-						class="w-full rounded-lg border px-3 py-2"
-						on:keydown={(e) => e.key === 'Enter' && sendMessage()}
-					/>
-					<button
-						on:click={sendMessage}
-						class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-white transition hover:bg-opacity-90"
-					>
-						Send
-					</button>
+			<hr class="my-4" />
+
+			{#if selectedCaseId}
+				<div class="space-y-3">
+					<div class="flex items-center justify-between gap-4">
+						<label for="recipientDropdown" class="block text-sm font-semibold">Recipients</label>
+						<details class="relative w-full" bind:this={dropdownEl}>
+							<summary
+								id="recipientDropdown"
+								class="input input-bordered cursor-pointer list-none rounded-md bg-white p-2"
+								on:click|stopPropagation
+							>
+								{selectedRecipients.map(getSenderName).join(', ') || 'Select recipients...'}
+							</summary>
+							<div
+								class="absolute bottom-full z-10 mb-2 max-h-40 w-full overflow-y-auto rounded-md border bg-white p-2 shadow-md"
+							>
+								{#each users.filter((u) => u._id !== user.id && (u.company_id === currentCase?.client_id || selectedRecipients.includes(u._id))) as u}
+									<button
+										type="button"
+										class="hover:bg-base-200 flex w-full cursor-pointer items-center justify-between px-3 py-2 text-left"
+										on:click={() => toggleRecipient(u._id)}
+									>
+										<span>{u.full_name}</span>
+										{#if selectedRecipients.includes(u._id)}
+											<span class="ml-2 text-sm text-green-600">✔️</span>
+										{/if}
+									</button>
+								{/each}
+							</div>
+						</details>
+					</div>
+
+					<textarea
+						class="textarea input-bordered w-full rounded-md bg-gray-50"
+						rows="3"
+						placeholder="Write a message..."
+						bind:value={replyContent}
+					></textarea>
+
+					<div class="flex justify-end">
+						<button
+							class="btn rounded-md bg-blue-600 text-white hover:bg-blue-700"
+							on:click={sendMessage}>Send</button
+						>
+					</div>
 				</div>
-			{:else}
-				<p class="text-gray-500">Select a conversation to view messages.</p>
 			{/if}
 		</div>
 	</div>
 </section>
+
+<style>
+	.unread-indicator {
+		width: 8px;
+		height: 8px;
+		background-color: #1e40af;
+		border-radius: 9999px;
+		display: inline-block;
+		margin-right: 6px;
+	}
+	input:focus,
+	summary:focus,
+	textarea:focus {
+		outline: none;
+		box-shadow: none;
+		border-color: #000000;
+	}
+</style>
