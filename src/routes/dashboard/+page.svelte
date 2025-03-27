@@ -153,7 +153,7 @@
 			<button
 				type="button"
 				tabindex="0"
-				on:click={() => goTo('/messages')}
+				on:click={() => goTo('/messaging')}
 				class="mt-2 text-3xl font-bold text-black hover:text-blue-600 focus:outline-none"
 			>
 				{metrics.unreadMessages}
