@@ -135,6 +135,7 @@
 				selectedMessages = updated
 					.filter((msg) => msg.case_id === caseId)
 					.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+				loadMessages();
 			}, 1000);
 		}
 
@@ -149,6 +150,16 @@
 		const companyUsers = users.filter(
 			(u) => u.company_id && u.company_id === currentCase?.client_id && u._id !== user.id
 		);
+
+		const assignedAttorney = currentCase?.assigned_attorney;
+		if (assignedAttorney && assignedAttorney !== user.id) {
+			recipientsInThread.push(assignedAttorney);
+		}
+
+		const assignedOperator = currentCase?.assigned_operator;
+		if (assignedOperator && assignedOperator !== user.id) {
+			recipientsInThread.push(assignedOperator);
+		}
 
 		const validRecipientIds = [
 			...new Set([...recipientsInThread, ...companyUsers.map((u) => u._id)])
@@ -201,45 +212,54 @@
 	/>
 
 	<div class="grid flex-1 grid-cols-1 gap-4 overflow-hidden md:grid-cols-3">
-		<div class="overflow-y-auto border-r bg-white py-1 pb-4 pl-2 pr-2">
-			{#each groupedThreads as thread}
-				<button
-					type="button"
-					class="hover:bg-base-200 w-full cursor-pointer border-b px-2 py-3 text-left transition"
-					class:bg-base-300={thread.case_id === selectedCaseId}
-					class:text-gray-400={isThreadRead(thread)}
-					on:click={() => selectThread(thread.case_id)}
-				>
-					<div class="flex items-center justify-between">
-						<div class="flex items-center font-medium">
-							{#if !isThreadRead(thread)}<span class="unread-indicator"></span>{/if}
-							{getSenderName(thread.latest.sender_id)}
+		<!-- Left Column -->
+		<div class="col-span-1 flex h-full flex-col">
+			<div class="rounded-t-md bg-gray-700 px-4 py-2 font-semibold text-white">Inbox</div>
+			<div class="flex-1 overflow-y-auto border-r bg-white py-1 pb-4 pl-2 pr-2">
+				{#each groupedThreads as thread}
+					<button
+						type="button"
+						class="hover:bg-base-200 w-full cursor-pointer border-b border-gray-300 px-2 py-3 text-left transition"
+						class:bg-base-300={thread.case_id === selectedCaseId}
+						class:text-gray-400={isThreadRead(thread)}
+						on:click={() => selectThread(thread.case_id)}
+					>
+						<div class="flex items-center justify-between">
+							<div class="flex items-center font-medium">
+								{#if !isThreadRead(thread)}<span class="unread-indicator"></span>{/if}
+								{getSenderName(thread.latest.sender_id)}
+							</div>
+							<div class="whitespace-nowrap text-xs text-gray-500">
+								{new Date(thread.latest.created_at).toLocaleString()}
+							</div>
 						</div>
-						<div class="whitespace-nowrap text-xs text-gray-500">
-							{new Date(thread.latest.created_at).toLocaleString()}
+						<div class="truncate text-sm text-gray-600">
+							<strong>{getCaseName(thread.case_id)}</strong>: {thread.latest.content}
 						</div>
-					</div>
-					<div class="truncate text-sm text-gray-600">
-						<strong>{getCaseName(thread.case_id)}</strong>: {thread.latest.content}
-					</div>
-				</button>
-			{/each}
+					</button>
+				{/each}
+			</div>
 		</div>
 
-		<div class="col-span-2 flex flex-col overflow-hidden rounded-lg border bg-white p-4">
-			<div class="flex-1 space-y-4 overflow-y-auto px-2 pb-4" bind:this={messageContainer}>
+		<!-- Right Column -->
+		<div class="col-span-2 flex flex-col overflow-hidden rounded-lg border bg-white">
+			<div class="bg-gray-700 px-4 py-2 font-semibold text-white">Message Thread</div>
+
+			<div class="flex-1 space-y-4 overflow-y-auto px-4 pb-4" bind:this={messageContainer}>
 				{#each selectedMessages as msg}
 					<div class="flex flex-col items-start" class:items-end={msg.sender_id === user.id}>
-						<div class="mb-1 text-xs italic text-gray-400">
+						<div class="my-1 text-xs italic text-gray-400">
 							{new Date(msg.created_at).toLocaleString()}
 						</div>
 						<div
 							class={`max-w-xs whitespace-pre-wrap rounded-xl p-3 shadow md:max-w-md ${msg.sender_id === user.id ? 'bg-blue-100 text-black' : 'bg-gray-100 text-black'} ml-2 mr-2`}
 						>
-							<div class="mb-1 text-xs font-semibold">@{getRecipientNames(msg.recipient_ids)}</div>
+							<div class="text-[12px] font-semibold">
+								@{getRecipientNames(msg.recipient_ids)}
+							</div>
 							<div class="text-sm">{msg.content}</div>
 						</div>
-						<div class="mt-1 text-[11px] italic text-gray-500">
+						<div class="mt-0.5 text-[11px] italic text-gray-500">
 							{msg.sender_id === user.id
 								? 'Sent by You'
 								: msg.read_by.includes(user.id)
@@ -253,16 +273,19 @@
 			<hr class="my-4" />
 
 			{#if selectedCaseId}
-				<div class="space-y-3">
+				<div class="space-y-3 px-4 pb-4">
 					<div class="flex items-center justify-between gap-4">
 						<label for="recipientDropdown" class="block text-sm font-semibold">Recipients</label>
 						<details class="relative w-full" bind:this={dropdownEl}>
 							<summary
 								id="recipientDropdown"
-								class="input input-bordered cursor-pointer list-none rounded-md bg-white p-2"
+								class="input input-bordered cursor-pointer list-none rounded-md bg-white p-2 text-sm"
 								on:click|stopPropagation
 							>
-								{selectedRecipients.map(getSenderName).join(', ') || 'Select recipients...'}
+								<span class="text-sm"
+									>{selectedRecipients.map(getSenderName).join(', ') ||
+										'Select recipients...'}</span
+								>
 							</summary>
 							<div
 								class="absolute bottom-full z-10 mb-2 max-h-40 w-full overflow-y-auto rounded-md border bg-white p-2 shadow-md"
@@ -273,7 +296,7 @@
 										class="hover:bg-base-200 flex w-full cursor-pointer items-center justify-between px-3 py-2 text-left"
 										on:click={() => toggleRecipient(u._id)}
 									>
-										<span>{u.full_name}</span>
+										<span class="text-sm">{u.full_name}</span>
 										{#if selectedRecipients.includes(u._id)}
 											<span class="ml-2 text-sm text-green-600">✔️</span>
 										{/if}
@@ -285,7 +308,7 @@
 
 					<textarea
 						class="textarea input-bordered w-full rounded-md bg-gray-50"
-						rows="3"
+						rows="2"
 						placeholder="Write a message..."
 						bind:value={replyContent}
 					></textarea>
@@ -312,8 +335,8 @@
 		margin-right: 6px;
 	}
 	input:focus,
-	summary:focus,
-	textarea:focus {
+	textarea:focus,
+	summary:focus {
 		outline: none;
 		box-shadow: none;
 		border-color: #000000;
