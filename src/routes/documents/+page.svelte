@@ -1,189 +1,139 @@
 <script>
 	import { onMount } from 'svelte';
-	import { writable } from 'svelte/store';
+	import { getAllRecords, saveToLocalStorage } from '$lib/localStorage';
+	import { auth } from '$lib/stores/auth';
 
-	// Mock Data (Replace with API Calls Later)
-	let documents = writable([
-		{
-			id: 1,
-			fileName: 'Lease_Agreement.pdf',
-			caseNumber: 'ABC123-001',
-			address: '123 Main St',
-			state: 'AZ'
-		},
-		{
-			id: 2,
-			fileName: 'Eviction_Notice.pdf',
-			caseNumber: 'XYZ789-002',
-			address: '456 Elm St',
-			state: 'CO'
-		},
-		{
-			id: 3,
-			fileName: 'Court_Order.pdf',
-			caseNumber: 'SMITH556-003',
-			address: '789 Oak St',
-			state: 'CA'
-		}
-	]);
+	let documents = [];
+	let filteredDocuments = [];
+	let search = '';
+	let user;
+	let caseRecords = [];
 
-	let searchQuery = '';
-	let selectedDocument = null;
-	let selectedFiles = writable([]); // Store files before upload
-
-	// Add file to the queue
-	function handleFileSelect(event) {
-		let files = event.target.files;
-		if (!files.length) return;
-		selectedFiles.update((currentFiles) => [...currentFiles, ...Array.from(files)]);
-	}
-
-	// Remove file from queue
-	function removeFile(index) {
-		selectedFiles.update((files) => files.filter((_, i) => i !== index));
-	}
-
-	// Upload Function (Placeholder for Backend API)
-	function uploadFiles() {
-		selectedFiles.subscribe((files) => {
-			if (files.length === 0) {
-				alert('No files selected.');
-				return;
+	onMount(() => {
+		auth.subscribe((value) => {
+			user = value?.user;
+			if (user) {
+				loadDocuments();
 			}
+		});
+	});
 
-			alert(`Uploading ${files.length} files... (Backend API Call Goes Here)`);
+	function loadDocuments() {
+		caseRecords = getAllRecords('caseRecords', user);
+		documents = getAllRecords('documents', user);
+		filteredDocuments = documents;
+	}
 
-			// Clear selected files after upload
-			selectedFiles.set([]);
+	function getCaseNumber(case_id) {
+		const match = caseRecords.find((c) => c._id === case_id);
+		return match?.case_number || case_id;
+	}
+
+	function applySearch() {
+		const term = search.toLowerCase();
+		filteredDocuments = documents.filter((doc) => {
+			return (
+				doc.name.toLowerCase().includes(term) ||
+				doc.type.toLowerCase().includes(term) ||
+				doc.description.toLowerCase().includes(term) ||
+				getCaseNumber(doc.case_id).toLowerCase().includes(term)
+			);
 		});
 	}
 
-	// Open PDF Preview
-	function openPreview(doc) {
-		selectedDocument = doc;
+	function handleUpload(e) {
+		const file = e.target.files[0];
+		if (!file) return;
+		const newDoc = {
+			_id: crypto.randomUUID(),
+			client_id: '',
+			case_id: 'TEMP-' + Math.floor(Math.random() * 1000),
+			type: 'Uploaded File',
+			name: file.name,
+			description: '',
+			file_path: `/documents/${file.name}`,
+			file_url: URL.createObjectURL(file),
+			file_size: file.size,
+			file_type: file.type,
+			uploaded_by: user?.id || '',
+			uploaded_at: new Date(),
+			updated_at: new Date(),
+			tags: [],
+			notes: '',
+			is_confidential: false,
+			is_deleted: false
+		};
+		documents = [newDoc, ...documents];
+		applySearch();
+		saveToLocalStorage('documents', documents);
 	}
 
-	// Delete Document
-	function deleteDocument(docId) {
-		if (confirm('Are you sure you want to delete this document?')) {
-			documents.update((docs) => docs.filter((doc) => doc.id !== docId));
-		}
-	}
-
-	// Search function (Matches all columns)
-	function matchesSearch(doc) {
-		const query = searchQuery.toLowerCase();
-		return (
-			doc.fileName.toLowerCase().includes(query) ||
-			doc.caseNumber.toLowerCase().includes(query) ||
-			doc.address.toLowerCase().includes(query) ||
-			doc.state.toLowerCase().includes(query)
-		);
+	function handleDelete(id) {
+		documents = documents.filter((d) => d._id !== id);
+		applySearch();
+		saveToLocalStorage('documents', documents);
 	}
 </script>
 
-<section class="p-4 sm:p-6">
-	<!-- Header -->
-	<div class="mb-4 flex items-center justify-between">
-		<h1 class="text-3xl font-bold">Documents</h1>
-		<label
-			class="cursor-pointer rounded-lg bg-[var(--color-primary)] px-6 py-2 text-white shadow-md transition hover:bg-opacity-90"
-		>
-			Select Files
-			<input type="file" class="hidden" multiple on:change={handleFileSelect} />
+<section class="p-4">
+	<div class="flex items-center gap-2 mb-4">
+		<input
+			type="text"
+			placeholder="Search documents..."
+			class="input input-bordered rounded-md w-[90%] bg-gray-50"
+			bind:value={search}
+			on:input={applySearch}
+		/>
+		<label class="btn bg-gray-800 text-white hover:bg-gray-700 w-[10%] rounded-md text-center cursor-pointer">
+			Upload
+			<input type="file" class="hidden" on:change={handleUpload} />
 		</label>
 	</div>
 
-	<!-- Selected Files Before Upload -->
-	{#if $selectedFiles.length > 0}
-		<div class="mb-4 rounded-lg bg-gray-100 p-4">
-			<h2 class="mb-2 text-lg font-semibold">Files to Upload:</h2>
-			<ul>
-				{#each $selectedFiles as file, index}
-					<li class="mb-2 flex items-center justify-between rounded bg-white p-2 shadow">
-						<span>{file.name}</span>
-						<button
-							on:click={() => removeFile(index)}
-							class="rounded bg-red-500 px-3 py-1 text-white hover:bg-red-700"
-						>
-							Remove
-						</button>
-					</li>
-				{/each}
-			</ul>
-			<button
-				on:click={uploadFiles}
-				class="mt-3 rounded-lg bg-green-600 px-6 py-2 text-white shadow-md transition hover:bg-green-700"
-			>
-				Upload Files
-			</button>
-		</div>
-	{/if}
-
-	<!-- Search Bar -->
-	<input
-		type="text"
-		placeholder="Search documents..."
-		class="mb-4 w-full rounded-lg border px-4 py-2"
-		bind:value={searchQuery}
-	/>
-
-	<!-- Documents Table -->
-	<div class="overflow-x-auto rounded-lg border">
-		<table class="w-full bg-white shadow-md">
-			<thead class="bg-gray-200">
+	<div class="overflow-x-auto rounded border border-gray-200">
+		<table class="table w-full text-sm">
+			<thead class="bg-gray-700 text-white text-xs">
 				<tr>
-					<th class="p-2 text-left">File Name</th>
-					<th class="p-2 text-left">Case #</th>
-					<th class="p-2 text-left">Address</th>
-					<th class="p-2 text-left">State</th>
-					<th class="p-2 text-left">Actions</th>
+					<th class="px-2 py-1 min-w-[110px] whitespace-nowrap">Case #</th>
+					<th class="px-2 py-1 min-w-[100px] whitespace-nowrap">Type</th>
+					<th class="px-2 py-1 max-w-[160px] truncate">Document Name</th>
+					<th class="px-2 py-1 max-w-[200px] truncate">Description</th>
+					<th class="px-2 py-1 whitespace-nowrap">Uploaded</th>
+					<th class="px-2 py-1 text-center whitespace-nowrap">Actions</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each $documents as doc (doc.id)}
-					{#if matchesSearch(doc)}
-						<tr class="border-t">
-							<td class="p-2">{doc.fileName}</td>
-							<td class="p-2">{doc.caseNumber}</td>
-							<td class="p-2">{doc.address}</td>
-							<td class="p-2">{doc.state}</td>
-							<td class="flex space-x-2 p-2">
-								<button
-									on:click={() => openPreview(doc)}
-									class="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
-								>
-									View
-								</button>
-								<button
-									on:click={() => deleteDocument(doc.id)}
-									class="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
-								>
-									Delete
-								</button>
-							</td>
-						</tr>
-					{/if}
+				{#each filteredDocuments as doc, i}
+					<tr class="text-sm align-middle {i % 2 === 0 ? 'bg-white' : 'bg-gray-100'}">
+						<td class="px-2 py-1 align-middle whitespace-nowrap">{getCaseNumber(doc.case_id)}</td>
+						<td class="px-2 py-1 align-middle whitespace-nowrap">{doc.type}</td>
+						<td class="px-2 py-1 align-middle truncate max-w-[160px]" title={doc.name}>{doc.name}</td>
+						<td class="px-2 py-1 align-middle truncate max-w-[200px]" title={doc.description}>{doc.description}</td>
+						<td class="px-2 py-1 align-middle text-center whitespace-nowrap">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+						<td class="px-2 py-1 align-middle text-center whitespace-nowrap">
+							<button
+								on:click={() => window.open(doc.file_url, '_blank')}
+								class="text-blue-600 hover:underline focus:outline-none"
+								aria-label="View Document"
+							>
+								View
+							</button>
+							<span class="mx-1 text-gray-400">|</span>
+							<button
+								on:click={() => handleDelete(doc._id)}
+								class="text-red-600 hover:underline focus:outline-none"
+								aria-label="Delete Document"
+							>
+								Delete
+							</button>
+						</td>
+					</tr>
+				{:else}
+					<tr>
+						<td colspan="6" class="text-center text-gray-500 px-3 py-4">No documents found.</td>
+					</tr>
 				{/each}
 			</tbody>
 		</table>
 	</div>
-
-	<!-- PDF Preview Modal -->
-	{#if selectedDocument}
-		<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-			<div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
-				<h2 class="mb-4 text-xl font-bold">{selectedDocument.fileName}</h2>
-				<p>📄 Previewing {selectedDocument.fileName} (This would show a PDF preview)</p>
-				<div class="mt-4 flex justify-end">
-					<button
-						on:click={() => (selectedDocument = null)}
-						class="rounded bg-gray-500 px-4 py-2 text-white hover:bg-gray-600"
-					>
-						Close
-					</button>
-				</div>
-			</div>
-		</div>
-	{/if}
 </section>
