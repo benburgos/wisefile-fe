@@ -1,334 +1,393 @@
 <script>
 	import { onMount } from 'svelte';
-	import { writable } from 'svelte/store';
+	import { getAllRecords, saveToLocalStorage } from '$lib/localStorage';
 	import { auth } from '$lib/stores/auth';
 
-	let invoices = writable([
-		{
-			id: 1,
-			client: 'ABC Properties',
-			caseNumber: 'ABC123-001',
-			amount: '$450',
-			status: 'Paid',
-			created: '2025-02-01',
-			fileName: 'invoice-abc123.pdf'
-		},
-		{
-			id: 2,
-			client: 'XYZ Realty',
-			caseNumber: 'XYZ789-002',
-			amount: '$700',
-			status: 'Unpaid',
-			created: '2025-01-15',
-			fileName: 'invoice-xyz789.pdf'
-		},
-		{
-			id: 3,
-			client: 'Smith Rentals',
-			caseNumber: 'SMITH556-003',
-			amount: '$600',
-			status: 'Paid',
-			created: '2025-02-10',
-			fileName: 'invoice-smith.pdf'
-		},
-		{
-			id: 4,
-			client: 'DEF Holdings',
-			caseNumber: 'DEF112-004',
-			amount: '$350',
-			status: 'Unpaid',
-			created: '2025-01-10',
-			fileName: 'invoice-def112.pdf'
-		}
-	]);
-
-	let searchQuery = '';
-	let showInvoiceModal = false;
-	let selectedInvoiceFile = null;
-	let showUpdateModal = false;
+	let invoices = [];
+	let caseRecords = [];
+	let feeRecords = [];
+	let clientRecords = [];
+	let filteredInvoices = [];
+	let search = '';
+	let user;
+	let showUploadModal = false;
+	let showEditModal = false;
+	let showDeleteModal = false;
+	let invoiceToDelete = null;
 	let selectedInvoice = null;
-	let newStatus = '';
-	let showUploadModal = false; // ✅ Added for Upload Invoice Modal
-	let uploadedFile = null; // Stores the selected file for upload
+	let newInvoice = {
+		case_id: '',
+		description: '',
+		amount: 0,
+		due_date: '',
+		associated_fees: [],
+		status: 'pending'
+	};
 
-	let sortDirection = { column: 'status', order: 'desc' };
-	let userRole = null;
-
-	auth.subscribe(({ role }) => {
-		userRole = role || null;
-	});
-
-	// Sorting logic updates
 	onMount(() => {
-		invoices.update((current) => {
-			return [...current].sort((a, b) => {
-				if (a.status === 'Unpaid' && b.status === 'Paid') return -1;
-				if (a.status === 'Paid' && b.status === 'Unpaid') return 1;
-				return new Date(a.created) - new Date(b.created);
-			});
+		auth.subscribe((value) => {
+			user = value?.user;
+			if (user) {
+				loadData();
+			}
 		});
 	});
 
-	// Function to toggle sorting
-	function sortInvoices(column) {
-		let currentOrder =
-			sortDirection.column === column ? (sortDirection.order === 'asc' ? 'desc' : 'asc') : 'asc';
-		sortDirection = { column, order: currentOrder };
+	function loadData() {
+		invoices = getAllRecords('invoices', user).filter((i) => i.is_active !== false);
+		caseRecords = getAllRecords('caseRecords', user);
+		feeRecords = getAllRecords('fees', user);
+		clientRecords = getAllRecords('clients', user);
+		invoices.sort(sortInvoices);
+		filteredInvoices = invoices;
+	}
 
-		invoices.update((current) => {
-			return [...current].sort((a, b) => {
-				if (column === 'status') {
-					if (a.status === 'Unpaid' && b.status === 'Paid') return -1;
-					if (a.status === 'Paid' && b.status === 'Unpaid') return 1;
-					return 0;
-				}
-				if (column === 'created') {
-					return currentOrder === 'asc'
-						? new Date(a.created) - new Date(b.created)
-						: new Date(b.created) - new Date(a.created);
-				}
-				return 0;
-			});
+	function sortInvoices(a, b) {
+		const statusOrder = { overdue: 0, pending: 1, paid: 2 };
+		if (statusOrder[a.status] !== statusOrder[b.status]) {
+			return statusOrder[a.status] - statusOrder[b.status];
+		}
+		return new Date(a.due_date) - new Date(b.due_date);
+	}
+
+	function getClientName(client_id) {
+		return clientRecords.find((c) => c._id === client_id)?.internal_name || 'Unknown';
+	}
+
+	function getCaseNumber(case_id) {
+		return caseRecords.find((c) => c._id === case_id)?.case_number || 'Unknown';
+	}
+
+	function applySearch() {
+		const term = search.toLowerCase();
+		filteredInvoices = invoices.filter((inv) => {
+			return (
+				getClientName(inv.client_id).toLowerCase().includes(term) ||
+				getCaseNumber(inv.case_id).toLowerCase().includes(term) ||
+				inv.invoice_number.toLowerCase().includes(term) ||
+				inv.status.toLowerCase().includes(term)
+			);
 		});
 	}
 
-	// ✅ View Invoice Function
-	function viewInvoice(fileName) {
-		selectedInvoiceFile = fileName;
-		showInvoiceModal = true;
+	function handleUpload() {
+		showUploadModal = true;
 	}
 
-	// ✅ Close View Invoice Modal
-	function closeInvoiceModal() {
-		showInvoiceModal = false;
-		selectedInvoiceFile = null;
+	function generateInvoiceNumber(clientId) {
+		const clientCases = invoices.filter((inv) => inv.client_id === clientId);
+		const lastNumber =
+			clientCases
+				.map((inv) => inv.invoice_number?.split('-')?.[2])
+				.filter(Boolean)
+				.map((num) => parseInt(num))
+				.sort((a, b) => b - a)[0] || 0;
+
+		const nextNumber = (lastNumber + 1).toString().padStart(4, '0');
+		const clientCode = getCaseNumber(newInvoice.case_id).split('-')[0]; // e.g., 'PFH'
+
+		return `${clientCode}-INV-${nextNumber}`;
 	}
 
-	// ✅ Download Invoice Function
-	function downloadInvoice(fileName) {
-		alert(`Downloading ${fileName}...`);
-	}
-
-	// ✅ Delete Invoice Function
-	function deleteInvoice(invoiceId) {
-		if (confirm('Are you sure you want to delete this invoice?')) {
-			invoices.update((current) => current.filter((inv) => inv.id !== invoiceId));
-		}
-	}
-
-	// ✅ Open Update Status Modal
-	function openUpdateModal(invoice) {
-		selectedInvoice = invoice;
-		newStatus = invoice.status;
-		showUpdateModal = true;
-	}
-
-	// ✅ Confirm Status Update
-	function confirmStatusUpdate() {
-		if (!selectedInvoice) return;
-
-		if (confirm(`Are you sure you want to change the status to "${newStatus}"?`)) {
-			selectedInvoice.status = newStatus;
-
-			// Ideally, this would trigger a backend API call
-			console.log(`Invoice ${selectedInvoice.caseNumber} status updated to ${newStatus}`);
-		}
-
-		showUpdateModal = false;
-	}
-
-	// ✅ Handle File Upload (for Upload Invoice Modal)
-	function handleFileUpload(event) {
-		const file = event.target.files[0];
-		if (file && file.type === 'application/pdf') {
-			uploadedFile = file;
-		} else {
-			alert('Please upload a valid PDF file.');
-			uploadedFile = null;
-		}
-	}
-
-	// ✅ Upload Invoice Function
-	function uploadInvoice() {
-		if (!uploadedFile) {
-			alert('Please select a file first.');
-			return;
-		}
-
-		// Ideally, this would send to S3 and store metadata in MongoDB
-		alert(`Uploading ${uploadedFile.name}...`);
+	function handleUploadConfirm() {
+		const invoice = {
+			_id: crypto.randomUUID(),
+			client_id: caseRecords.find((c) => c._id === newInvoice.case_id)?.client_id || '',
+			case_id: newInvoice.case_id,
+			invoice_number: generateInvoiceNumber(newInvoice.client_id),
+			invoice_date: new Date(),
+			due_date: new Date(newInvoice.due_date),
+			amount: newInvoice.amount,
+			description: newInvoice.description,
+			status: 'pending',
+			created_at: new Date(),
+			updated_at: new Date(),
+			is_active: true,
+			payment_details: {},
+			notes: '',
+			associated_fees: newInvoice.associated_fees
+		};
+		invoices = [invoice, ...invoices];
+		saveToLocalStorage('invoices', invoices);
 		showUploadModal = false;
+		loadData();
+		newInvoice = {
+			case_id: '',
+			description: '',
+			amount: 0,
+			due_date: '',
+			associated_fees: [],
+			status: 'pending'
+		};
 	}
 
-	// ✅ Close Upload Invoice Modal
-	function closeUploadModal() {
-		showUploadModal = false;
-		uploadedFile = null;
+	function getEligibleCases() {
+		if (!user || !user.role) return [];
+		return caseRecords
+			.filter((c) => {
+				if (user.role === 'admin') return true;
+				if (user.role === 'client') return c.client_id === user.client_id;
+				if (user.role === 'attorney') return c.assigned_attorney === user.id;
+				if (user.role === 'operator') return c.assigned_operator === user.id;
+				return false;
+			})
+			.sort((a, b) => {
+				const [prefixA, numA] = a.case_number.split('-CASE-');
+				const [prefixB, numB] = b.case_number.split('-CASE-');
+				return prefixA.localeCompare(prefixB) || parseInt(numA) - parseInt(numB);
+			});
+	}
+
+	function getPendingFeesForCase(case_id) {
+		return feeRecords.filter((f) => f.case_id === case_id && f.status === 'pending');
+	}
+
+	function updateAmountFromFees() {
+		const selected = newInvoice.associated_fees;
+		const total = feeRecords
+			.filter((f) => selected.includes(f._id))
+			.reduce((sum, fee) => sum + fee.amount, 0);
+		newInvoice.amount = total;
+	}
+
+	function handleDeleteRequest(inv) {
+		showDeleteModal = true;
+		invoiceToDelete = inv;
+	}
+
+	function confirmDelete() {
+		if (invoiceToDelete) {
+			const updated = invoices.map((i) =>
+				i._id === invoiceToDelete._id ? { ...i, is_active: false } : i
+			);
+			saveToLocalStorage('invoices', updated);
+			invoices = updated.filter((i) => i.is_active !== false);
+			filteredInvoices = invoices;
+		}
+		showDeleteModal = false;
+		invoiceToDelete = null;
+	}
+
+	function handleEdit(invoice) {
+		selectedInvoice = { ...invoice };
+		showEditModal = true;
+	}
+
+	function confirmEdit() {
+		const index = invoices.findIndex((i) => i._id === selectedInvoice._id);
+		if (index !== -1) {
+			invoices[index].status = selectedInvoice.status;
+			invoices[index].updated_at = new Date();
+			if (selectedInvoice.status === 'paid') {
+				invoices[index].associated_fees.forEach((id) => {
+					const fee = feeRecords.find((f) => f._id === id);
+					if (fee) fee.status = 'paid';
+				});
+				saveToLocalStorage('fees', feeRecords);
+			}
+			saveToLocalStorage('invoices', invoices);
+			loadData();
+			showEditModal = false;
+		}
 	}
 </script>
 
-<section class="p-4 sm:p-6">
-	<div class="mb-4 flex items-center justify-between">
-		<h1 class="text-3xl font-bold">Invoices</h1>
-
-		{#if userRole === 'admin' || userRole === 'ops'}
-			<button
-				on:click={() => (showUploadModal = true)}
-				class="rounded-lg bg-[var(--color-primary)] px-6 py-2 text-white shadow-md transition hover:bg-opacity-90"
-			>
-				Upload Invoice
-			</button>
-		{/if}
+<section class="space-y-6">
+	<div class="flex items-center justify-between">
+		<input
+			type="text"
+			placeholder="Search invoices..."
+			bind:value={search}
+			on:input={applySearch}
+			class="w-full rounded border border-gray-300 bg-gray-50 px-4 py-2"
+		/>
+		<button class="ml-2 rounded bg-gray-800 px-4 py-2 text-white" on:click={handleUpload}>
+			Upload
+		</button>
 	</div>
 
-	<input
-		type="text"
-		placeholder="Search invoices..."
-		class="mb-4 w-full rounded-lg border px-4 py-2"
-		bind:value={searchQuery}
-	/>
+	<table class="w-full border text-sm shadow-sm">
+		<thead>
+			<tr>
+				<th>Client</th>
+				<th>Case #</th>
+				<th>Invoice #</th>
+				<th>Amount</th>
+				<th>Due</th>
+				<th>Status</th>
+				<th class="no-ellipsis text-center">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each filteredInvoices as inv, i}
+				<tr class={i % 2 === 0 ? 'bg-white' : 'bg-gray-100'}>
+					<td>{getClientName(inv.client_id)}</td>
+					<td>{getCaseNumber(inv.case_id)}</td>
+					<td>{inv.invoice_number}</td>
+					<td>${inv.amount.toFixed(2)}</td>
+					<td>{new Date(inv.due_date).toLocaleDateString()}</td>
+					<td>{inv.status}</td>
+					<td class="no-ellipsis whitespace-nowrap text-center text-sm">
+						<span class="flex items-center justify-center gap-1">
+							<button
+								class="text-xs hover:underline"
+								class:text-blue-600={inv.status !== 'paid'}
+								class:text-gray-400={inv.status === 'paid'}
+								disabled={inv.status === 'paid'}
+								on:click={() => handleEdit(inv)}
+							>
+								Edit
+							</button>
 
-	<div class="overflow-x-auto rounded-lg border">
-		<table class="w-full bg-white shadow-md">
-			<thead class="bg-gray-200">
-				<tr>
-					<th class="w-1/5 p-3 text-left">Client</th>
-					<th class="w-1/5 p-3 text-left">Case #</th>
-					<th class="w-1/6 p-3 text-left">Amount</th>
-					<th class="w-1/6 cursor-pointer p-3 text-left" on:click={() => sortInvoices('status')}>
-						Status <span class="ml-1"
-							>{sortDirection.column === 'status'
-								? sortDirection.order === 'asc'
-									? '▲'
-									: '▼'
-								: ''}</span
-						>
-					</th>
-					<th class="w-1/6 cursor-pointer p-3 text-left" on:click={() => sortInvoices('created')}>
-						Created <span class="ml-1"
-							>{sortDirection.column === 'created'
-								? sortDirection.order === 'asc'
-									? '▲'
-									: '▼'
-								: '⇅'}</span
-						>
-					</th>
+							<span class="text-gray-400">|</span>
 
-					<th class="w-1/5 p-3 text-left">Actions</th>
+							<button
+								class="text-xs hover:underline"
+								class:text-red-600={inv.status !== 'paid'}
+								class:text-gray-400={inv.status === 'paid'}
+								disabled={inv.status === 'paid'}
+								on:click={() => handleDeleteRequest(inv)}
+							>
+								Delete
+							</button>
+						</span>
+					</td>
 				</tr>
-			</thead>
-			<tbody>
-				{#each $invoices as invoice (invoice.id)}
-					<tr class="border-t">
-						<td class="p-3">{invoice.client}</td>
-						<td class="p-3">{invoice.caseNumber}</td>
-						<td class="p-3">{invoice.amount}</td>
-						<td class="p-3">
-							<span
-								class="rounded-full px-3 py-1 text-sm text-white"
-								class:!bg-green-500={invoice.status === 'Paid'}
-								class:!bg-red-500={invoice.status === 'Unpaid'}
-							>
-								{invoice.status}
-							</span>
-						</td>
-						<td class="p-3">{invoice.created}</td>
-						<td class="flex gap-2 p-2">
-							<button
-								class="rounded bg-gray-600 px-3 py-1 text-white hover:bg-gray-700"
-								on:click={() => viewInvoice(invoice.fileName)}>View</button
-							>
-							<button
-								class="rounded bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
-								on:click={() => downloadInvoice(invoice.fileName)}>Download</button
-							>
-							{#if userRole === 'admin' || userRole === 'ops'}
-								<button
-									class="rounded bg-yellow-600 px-3 py-1 text-white hover:bg-yellow-700"
-									on:click={() => openUpdateModal(invoice)}>Update</button
-								>
-								<button
-									class="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
-									on:click={() => deleteInvoice(invoice.id)}>Delete</button
-								>
-							{/if}
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
+			{/each}
+		</tbody>
+	</table>
 </section>
 
-<!-- Upload Invoice Modal -->
 {#if showUploadModal}
-	<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-			<h2 class="mb-4 text-xl font-bold">Upload Invoice</h2>
-			<input
-				type="file"
-				accept="application/pdf"
-				class="w-full border p-2"
-				on:change={handleFileUpload}
-			/>
-			<div class="mt-4 flex justify-end gap-2">
-				<button on:click={closeUploadModal} class="rounded bg-gray-500 px-4 py-2 text-white">
-					Cancel
-				</button>
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+		<div class="relative w-full max-w-lg rounded bg-white p-4 shadow-lg">
+			<h2 class="mb-4 text-lg font-semibold">Upload Invoice</h2>
+			<div class="mb-2">
+				<span class="mb-1 block text-sm font-medium">Case</span>
+				<select
+					bind:value={newInvoice.case_id}
+					class="w-full rounded border px-2 py-1"
+					on:change={updateAmountFromFees}
+				>
+					<option value="">Select a case</option>
+					{#each getEligibleCases() as c}
+						<option value={c._id}>{c.case_number}</option>
+					{/each}
+				</select>
+			</div>
+			<div class="mb-2">
+				<span class="mb-1 block text-sm font-medium">Due Date</span>
+				<input
+					type="date"
+					bind:value={newInvoice.due_date}
+					class="w-full rounded border px-2 py-1"
+				/>
+			</div>
+			<div class="mb-2">
+				<span class="mb-1 block text-sm font-medium">Associated Fees</span>
+				<div class="max-h-40 overflow-auto rounded border px-2 py-1">
+					{#each getPendingFeesForCase(newInvoice.case_id) as fee}
+						<div class="mb-1 flex items-center justify-between">
+							<span class="text-sm">{fee.type} - ${fee.amount.toFixed(2)}</span>
+							<input
+								type="checkbox"
+								value={fee._id}
+								bind:group={newInvoice.associated_fees}
+								on:change={updateAmountFromFees}
+							/>
+						</div>
+					{/each}
+				</div>
+			</div>
+			<div class="mb-2">
+				<span class="mb-1 block text-sm font-medium">Amount</span>
+				<div class="rounded border bg-gray-100 px-2 py-1">${newInvoice.amount.toFixed(2)}</div>
+			</div>
+			<div class="mb-2">
+				<span class="mb-1 block text-sm font-medium">Description</span>
+				<textarea
+					bind:value={newInvoice.description}
+					class="w-full rounded border px-2 py-1"
+					rows="2"
+				></textarea>
+			</div>
+			<div class="flex justify-end gap-2">
 				<button
-					on:click={uploadInvoice}
-					class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+					class="rounded bg-gray-300 px-3 py-1 text-sm"
+					on:click={() => (showUploadModal = false)}>Cancel</button
 				>
-					Upload
-				</button>
-			</div>
-		</div>
-	</div>
-{/if}
-
-<!-- View Modal -->
-{#if showInvoiceModal}
-	<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-		<div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
-			<h2 class="mb-4 text-xl font-bold">Invoice Preview</h2>
-			<iframe
-				src="/path-to-invoice/{selectedInvoiceFile}"
-				title="Invoice Preview"
-				class="h-96 w-full rounded-lg border"
-			></iframe>
-			<div class="mt-4 flex justify-end">
-				<button on:click={closeInvoiceModal} class="rounded bg-gray-500 px-4 py-2 text-white"
-					>Close</button
+				<button
+					class="rounded bg-gray-800 px-3 py-1 text-sm text-white"
+					on:click={handleUploadConfirm}>Save</button
 				>
 			</div>
 		</div>
 	</div>
 {/if}
 
-<!-- Update Modal -->
-{#if showUpdateModal}
-	<div class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-			<h2 class="mb-4 text-xl font-bold">Update Invoice Status</h2>
-			<label for="status-select" class="block text-sm font-semibold">Change Status:</label>
-			<select id="status-select" bind:value={newStatus} class="mt-2 w-full rounded border p-2">
-				<option value="Unpaid">Unpaid</option>
-				<option value="Paid">Paid</option>
+{#if showEditModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+		<div class="relative w-full max-w-md rounded bg-white p-4 shadow-lg">
+			<h2 class="mb-4 text-lg font-semibold">Edit Invoice Status</h2>
+			<select bind:value={selectedInvoice.status} class="w-full rounded border px-2 py-1">
+				<option value="overdue">Overdue</option>
+				<option value="pending">Pending</option>
+				<option value="paid">Paid</option>
 			</select>
 			<div class="mt-4 flex justify-end gap-2">
 				<button
-					on:click={() => (showUpdateModal = false)}
-					class="rounded bg-gray-500 px-4 py-2 text-white"
+					class="rounded bg-gray-300 px-3 py-1 text-sm"
+					on:click={() => (showEditModal = false)}>Cancel</button
+				>
+				<button class="rounded bg-green-600 px-3 py-1 text-sm text-white" on:click={confirmEdit}
+					>Save</button
+				>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if showDeleteModal}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+		<div class="relative w-full max-w-md rounded bg-white p-4 shadow-lg">
+			<h2 class="mb-3 text-lg font-semibold">Confirm Deletion</h2>
+			<p class="mb-4 text-sm text-gray-700">
+				Are you sure you want to delete invoice <strong>{invoiceToDelete?.invoice_number}</strong>?
+				This action cannot be undone.
+			</p>
+			<div class="flex justify-end gap-2">
+				<button
+					class="rounded bg-gray-300 px-3 py-1 text-sm"
+					on:click={() => (showDeleteModal = false)}
 				>
 					Cancel
 				</button>
-				<button
-					on:click={confirmStatusUpdate}
-					class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-				>
-					Confirm
+				<button class="rounded bg-red-600 px-3 py-1 text-sm text-white" on:click={confirmDelete}>
+					Delete
 				</button>
 			</div>
 		</div>
 	</div>
 {/if}
+
+<style>
+	table {
+		table-layout: fixed;
+	}
+	th,
+	td {
+		padding: 10px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	th {
+		background-color: #4b5563;
+		color: white;
+	}
+	.no-ellipsis {
+		white-space: normal;
+		overflow: visible;
+		text-overflow: initial;
+	}
+</style>
