@@ -50,12 +50,9 @@ export function getStoredData() {
 	return data;
 }
 
-export function saveToLocalStorage(data) {
+export function saveToLocalStorage(key, value) {
 	if (typeof localStorage === 'undefined') return;
-
-	for (const [key, value] of Object.entries(data)) {
-		localStorage.setItem(key, JSON.stringify(value));
-	}
+	localStorage.setItem(key, JSON.stringify(value));
 }
 
 // Fetch a single record by ID (while respecting filtering)
