@@ -31,7 +31,6 @@
 			roles: ['admin', 'operations', 'client', 'attorney']
 		},
 		{ path: '/invoices', label: 'Invoices', roles: ['admin', 'operations', 'client'] },
-		{ path: '/admin', label: 'Admin Panel', roles: ['admin'] },
 		{ path: '/settings', label: 'Settings', roles: ['admin', 'operations', 'client', 'attorney'] }
 	];
 </script>
