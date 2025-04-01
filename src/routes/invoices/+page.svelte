@@ -34,10 +34,48 @@
 	});
 
 	function loadData() {
-		invoices = getAllRecords('invoices', user).filter((i) => i.is_active !== false);
-		caseRecords = getAllRecords('caseRecords', user);
-		feeRecords = getAllRecords('fees', user);
-		clientRecords = getAllRecords('clients', user);
+		const allInvoices = getAllRecords('invoices');
+		const allCases = getAllRecords('caseRecords');
+		const allFees = getAllRecords('fees');
+		const allClients = getAllRecords('clients');
+
+		// Base filters
+		caseRecords = allCases;
+		feeRecords = allFees;
+
+		if (user.role === 'admin') {
+			invoices = allInvoices.filter((i) => i.is_active !== false);
+			clientRecords = allClients;
+		} else if (user.role === 'operations') {
+			const operatorCaseIds = allCases
+				.filter((c) => c.assigned_operator === user.id)
+				.map((c) => c._id);
+
+			invoices = allInvoices.filter(
+				(i) => i.is_active !== false && operatorCaseIds.includes(i.case_id)
+			);
+
+			// Get clients related to those cases
+			const clientIds = [
+				...new Set(allCases.filter((c) => operatorCaseIds.includes(c._id)).map((c) => c.client_id))
+			];
+			clientRecords = allClients.filter((c) => clientIds.includes(c._id));
+		} else if (user.role === 'client') {
+			// Only show invoices tied to this client's cases
+			const clientCaseIds = allCases
+				.filter((c) => c.client_id === user.clientId)
+				.map((c) => c._id);
+
+			invoices = allInvoices.filter(
+				(i) =>
+					i.is_active !== false &&
+					clientCaseIds.includes(i.case_id) &&
+					i.client_id === user.clientId
+			);
+
+			clientRecords = allClients.filter((c) => c._id === user.clientId);
+		}
+
 		invoices.sort(sortInvoices);
 		filteredInvoices = invoices;
 	}
