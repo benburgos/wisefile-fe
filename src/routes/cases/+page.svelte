@@ -1,157 +1,203 @@
 <script>
 	import { onMount } from 'svelte';
-	import { getStoredData, saveToLocalStorage } from '$lib/utils/storage';
+	import { getAllRecords } from '$lib/localStorage';
 	import { auth } from '$lib/stores/auth';
 	import CaseCreationModal from '$lib/components/CaseCreationModal.svelte';
 
-	let userRole = null;
-	let userClientId = null;
-	let cases = [];
+	let user = null;
 	let showModal = false;
-	let searchQuery = '';
-	let filtered = [];
+	let allCases = [];
+	let filteredCases = [];
+	let clients = [];
+	let users = [];
+	let tenants = [];
+	let properties = [];
 
-	auth.subscribe((user) => {
-		if (user && user.user) {
-			// Ensure user is not null
-			userRole = user.role;
-			userClientId = user.user.company_id;
-		} else {
-			userRole = null;
-			userClientId = null;
-		}
-	});
+	let statusFilter = '';
+	let subStatusFilter = '';
+	let attorneyFilter = '';
+	let assigneeFilter = '';
+	let searchTerm = '';
 
 	onMount(() => {
-		const storedData = getStoredData();
-
-		// Get all cases if Admin/Ops, otherwise only show client's cases
-		if (storedData && storedData.caseDetails) {
-			cases =
-				userRole === 'admin' || userRole === 'ops'
-					? storedData.caseDetails
-					: storedData.caseDetails.filter((c) => c.company_id === userClientId);
-		}
+		auth.subscribe((value) => {
+			user = value?.user;
+			if (user) loadData();
+		});
 	});
 
-	// Ensure filtering reacts to searchQuery & cases changes
-	$: filtered = cases.filter((c) =>
-		`${c.caseNumber} ${c.caseType} ${c.status} ${c.subStatus} ${c.plaintiff.name} ${c.newAddress.state} ${c.newAddress.jurisdiction}`
-			.toLowerCase()
-			.includes(searchQuery.toLowerCase())
-	);
-
-	// Toggle Case Creation Modal
 	function openCaseModal() {
 		showModal = true;
 	}
 
-	// Handle Modal Close Event (Fix for Cancel Button)
 	function closeCaseModal() {
 		showModal = false;
 	}
 
-	// Soft Delete Case
-	function deleteCase(caseId) {
-		if (confirm('Are you sure you want to delete this case? This action cannot be undone.')) {
-			cases = cases.map((c) => (c._id === caseId ? { ...c, deleted: true } : c));
-			const storedData = getStoredData();
-			storedData.caseDetails = cases;
-			saveToLocalStorage(storedData);
-		}
+	function loadData() {
+		if (!user || !user.role) return [];
+		const all = getAllRecords('caseRecords', user);
+		clients = getAllRecords('clients', user);
+		users = getAllRecords('users', user);
+		tenants = getAllRecords('tenants', user);
+		properties = getAllRecords('properties', user);
+
+		allCases = all.filter((c) => {
+			if (user.role === 'admin') return true;
+			if (user.role === 'client') return c.client_id === user.client_id;
+			if (user.role === 'attorney') return false;
+			if (user.role === 'operator') return c.assigned_operator === user.id;
+			return false;
+		});
+
+		filteredCases = allCases;
 	}
 
-	// Format Address for Table (Remove Commas)
-	function formatAddress(addr) {
-		let formatted = `${addr.streetNumber} ${addr.streetName}`;
-		if (addr.unitNumber) {
-			formatted += ` ${addr.unitNumber}`;
-		}
-		return formatted;
+	function getClientName(id) {
+		return clients.find((c) => c._id === id)?.internal_name || 'Unknown';
 	}
 
-	// Calculate Total Balance
-	function calculateBalance(fees) {
-		return fees.reduce((total, fee) => total + fee.amount, 0).toFixed(2);
+	function getUserName(id) {
+		return users.find((u) => u._id === id)?.full_name || 'Unassigned';
+	}
+
+	function getTenantName(id) {
+		return tenants.find((t) => t._id === id)?.full_name || 'Unknown';
+	}
+
+	function getPropertyAddress(id) {
+		const property = properties.find((p) => p._id === id);
+		if (!property || !property.address) return 'Unknown';
+		const { streetNumber, streetName, unitNumber, city, state } = property.address;
+		const unit = unitNumber ? ` Unit ${unitNumber}` : '';
+		return `${streetNumber} ${streetName}${unit}, ${city}, ${state}`;
+	}
+
+	function getJurisdiction(id) {
+		return properties.find((p) => p._id === id)?.address?.jurisdiction || 'Unknown';
+	}
+
+	function applyFilters() {
+		filteredCases = allCases.filter((c) => {
+			return (
+				(!statusFilter || c.status === statusFilter) &&
+				(!subStatusFilter || c.sub_status === subStatusFilter) &&
+				(!attorneyFilter || c.assigned_attorney === attorneyFilter) &&
+				(!assigneeFilter || c.assigned_operator === assigneeFilter) &&
+				(!searchTerm ||
+					getTenantName(c.tenant_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+					getPropertyAddress(c.property_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+					getClientName(c.client_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+					getJurisdiction(c.property_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+					c.case_number.toLowerCase().includes(searchTerm.toLowerCase()))
+			);
+		});
 	}
 </script>
 
-<section class="p-4">
-	<div class="mb-4 flex items-center justify-between">
-		<h1 class="text-2xl font-bold">Cases</h1>
-		<button
-			on:click={openCaseModal}
-			class="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm text-white"
-		>
-			New Filing or Collection
-		</button>
+<section class="space-y-4">
+	<!-- Search Bar + Conditional New Filing Button -->
+	<div class="flex flex-wrap items-center justify-between gap-3">
+		<div class={user?.role === 'attorney' ? 'w-full' : 'flex-grow'}>
+			<input
+				type="text"
+				placeholder="Search by case number, tenant name, property address, or jurisdiction"
+				bind:value={searchTerm}
+				on:input={applyFilters}
+				class="form-input w-full"
+			/>
+		</div>
+
+		{#if user?.role !== 'attorney'}
+			<button
+				class="mt-2 rounded bg-gray-800 px-4 py-2 text-sm text-white hover:bg-gray-700 md:mt-0"
+				on:click={openCaseModal}
+			>
+				New Filing
+			</button>
+		{/if}
 	</div>
 
-	<!-- Search Bar -->
-	<input
-		type="text"
-		placeholder="Search cases..."
-		bind:value={searchQuery}
-		class="mb-3 w-full rounded-md border px-3 py-2 text-sm"
-	/>
+	<!-- Inline Filters -->
+	<div class="flex items-center gap-2 text-sm">
+		<span class="whitespace-nowrap text-sm text-gray-600">Filters:</span>
+		<select bind:value={statusFilter} on:change={applyFilters} class="form-input text-xs">
+			<option value="">All Statuses</option>
+			<option value="Demand Posted">Demand Posted</option>
+			<option value="Court Date">Court Date</option>
+			<option value="Eviction">Eviction</option>
+			<option value="Writ">Writ</option>
+			<option value="Dismissed">Dismissed</option>
+		</select>
 
-	<!-- Cases Table -->
-	<div class="overflow-x-auto rounded-lg border">
-		<table class="w-full bg-white text-xs shadow-md">
-			<thead class="bg-gray-200 text-xs font-semibold">
-				<tr>
-					<th class="w-[10%] px-2 py-1 text-left">Case #</th>
-					<th class="w-[8%] px-2 py-1 text-left">Type</th>
-					<th class="w-[10%] px-2 py-1 text-left">Status</th>
-					<th class="w-[12%] px-2 py-1 text-left">Sub-Status</th>
-					<th class="w-[10%] px-2 py-1 text-left">Balance</th>
-					<th class="w-[18%] px-2 py-1 text-left">Address</th>
-					<th class="w-[5%] px-2 py-1 text-left">State</th>
-					<th class="w-[10%] px-2 py-1 text-left">Jurisdiction</th>
-					<th class="w-[12%] px-2 py-1 text-left">Client</th>
-					{#if userRole === 'admin' || userRole === 'ops'}
-						<th class="w-[10%] px-2 py-1 text-left">Actions</th>
-					{/if}
-				</tr>
-			</thead>
-			<tbody>
-				{#each filtered as caseDetail}
-					{#if !caseDetail.deleted}
-						<tr class="border-t">
-							<td class="px-2 py-1"
-								><a class="text-blue-800" href={`/cases/${caseDetail._id}`}
-									>{caseDetail.caseNumber}</a
-								></td
-							>
-							<td class="px-2 py-1">{caseDetail.caseType}</td>
-							<td class="px-2 py-1">{caseDetail.status}</td>
-							<td class="px-2 py-1">{caseDetail.subStatus}</td>
-							<td class="px-2 py-1 font-semibold">
-								${calculateBalance(caseDetail.fees)}
-							</td>
-							<td class="px-2 py-1">{formatAddress(caseDetail.newAddress)}</td>
-							<td class="px-2 py-1">{caseDetail.newAddress.state}</td>
-							<td class="px-2 py-1">{caseDetail.newAddress.jurisdiction}</td>
-							<td class="px-2 py-1">{caseDetail.plaintiff.name}</td>
-							{#if userRole === 'admin' || userRole === 'ops'}
-								<td class="px-2 py-1">
-									<button
-										on:click={() => deleteCase(caseDetail._id)}
-										class="rounded bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600"
-									>
-										Delete
-									</button>
-								</td>
-							{/if}
-						</tr>
-					{/if}
+		<select bind:value={subStatusFilter} on:change={applyFilters} class="form-input text-xs">
+			<option value="">All Sub-Statuses</option>
+			<option value="To Be Scheduled">To Be Scheduled</option>
+			<option value="Completed">Completed</option>
+			<option value="Date Requested">Date Requested</option>
+			<option value="Dismissed – Paid">Dismissed – Paid</option>
+		</select>
+
+		{#if user?.role === 'admin' || user?.role === 'operations'}
+			<select bind:value={attorneyFilter} on:change={applyFilters} class="form-input text-xs">
+				<option value="">All Attorneys</option>
+				{#each users.filter((u) => u.role === 'attorney') as u}
+					<option value={u._id}>{u.full_name}</option>
 				{/each}
-			</tbody>
-		</table>
+			</select>
+
+			<select bind:value={assigneeFilter} on:change={applyFilters} class="form-input text-xs">
+				<option value="">All Assignees</option>
+				{#each users.filter((u) => u.role === 'operations') as u}
+					<option value={u._id}>{u.full_name}</option>
+				{/each}
+			</select>
+		{/if}
 	</div>
 
-	<!-- Case Creation Modal -->
-	{#if showModal}
-		<CaseCreationModal bind:showModal on:close={closeCaseModal} />
-	{/if}
+	<!-- Table -->
+	<table class="table-standard w-full border text-sm shadow-sm">
+		<thead>
+			<tr>
+				<th>Case #</th>
+				<th>Status</th>
+				<th>Sub-Status</th>
+				<th>Tenant</th>
+				<th>Address</th>
+				<th>Jurisdiction</th>
+				<th>Attorney</th>
+				<th>Assignee</th>
+				<th>Client</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each filteredCases as file, i}
+				<tr class={i % 2 === 0 ? 'bg-white' : 'bg-gray-100'}>
+					<td>
+						<a href={`/cases/${file._id}`} class="text-blue-600 hover:underline">
+							{file.case_number}
+						</a>
+					</td>
+					<td>{file.status}</td>
+					<td>{file.sub_status}</td>
+					<td>{getTenantName(file.tenant_id)}</td>
+					<td>{getPropertyAddress(file.property_id)}</td>
+					<td>{getJurisdiction(file.property_id)}</td>
+					<td>{getUserName(file.assigned_attorney)}</td>
+					<td>{getUserName(file.assigned_operator)}</td>
+					<td>{getClientName(file.client_id)}</td>
+				</tr>
+			{/each}
+			{#if filteredCases.length === 0}
+				<tr>
+					<td colspan="9" class="px-3 py-4 text-center text-gray-500">No cases found.</td>
+				</tr>
+			{/if}
+		</tbody>
+	</table>
 </section>
+
+<!-- Case Creation Modal -->
+{#if showModal}
+	<CaseCreationModal bind:showModal on:close={closeCaseModal} />
+{/if}
