@@ -134,69 +134,58 @@
 	}
 </script>
 
-<section class="p-4">
-	<div class="mb-4 flex items-center gap-2">
+<section class="space-y-6">
+	<div class="flex items-center justify-between">
 		<input
 			type="text"
-			placeholder="Search documents..."
-			class="input input-bordered w-[90%] rounded-md bg-gray-50 text-sm"
+			placeholder="Search invoices..."
 			bind:value={search}
 			on:input={applySearch}
+			class="w-full rounded border border-gray-300 bg-gray-50 px-4 py-2"
 		/>
-		<label
-			class="btn w-[10%] cursor-pointer rounded-md bg-gray-800 text-center text-sm text-white hover:bg-gray-700"
-		>
+		<button class="ml-2 rounded bg-gray-800 px-4 py-2 text-white" on:click={handleUpload}>
 			Upload
-			<input type="file" class="hidden" on:change={handleUpload} />
-		</label>
+		</button>
 	</div>
 
-	<div class="overflow-x-auto rounded border border-gray-200">
-		<table class="custom-doc-table w-full text-sm">
-			<thead>
-				<tr>
-					<th>Case #</th>
-					<th>Type</th>
-					<th>Document Name</th>
-					<th>Description</th>
-					<th>Uploaded</th>
-					<th class="text-center">Actions</th>
+	<table class="table-standard w-full border text-sm shadow-sm">
+		<thead>
+			<tr>
+				<th>Case #</th>
+				<th>Type</th>
+				<th>Document Name</th>
+				<th>Description</th>
+				<th><span class="flex justify-center">Uploaded</span></th>
+				<th class="text-center"><span class="flex justify-center">Actions</span></th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each filteredDocuments as doc, i}
+				<tr class={i % 2 === 0 ? 'bg-white' : 'bg-gray-100'}>
+					<td title={getCaseNumber(doc.case_id)}>{getCaseNumber(doc.case_id)}</td>
+					<td title={doc.type}>{doc.type}</td>
+					<td title={doc.name} class="truncate-cell">{doc.name}</td>
+					<td title={doc.description} class="truncate-cell">{doc.description}</td>
+					<td class="text-center">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+					<td class="px-3 py-2">
+						<div class="flex items-center justify-center gap-1 whitespace-nowrap">
+							<button class="text-blue-600 hover:underline" on:click={() => handlePreview(doc)}
+								>View</button
+							>
+							<span class="text-gray-400">|</span>
+							<button class="text-red-600 hover:underline" on:click={() => handleDelete(doc._id)}
+								>Delete</button
+							>
+						</div>
+					</td>
 				</tr>
-			</thead>
-			<tbody>
-				{#each filteredDocuments as doc, i}
-					<tr class={i % 2 === 0 ? 'bg-white' : 'bg-gray-100'}>
-						<td title={getCaseNumber(doc.case_id)}>{getCaseNumber(doc.case_id)}</td>
-						<td title={doc.type}>{doc.type}</td>
-						<td title={doc.name} class="truncate-cell">{doc.name}</td>
-						<td title={doc.description} class="truncate-cell">{doc.description}</td>
-						<td class="text-center">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
-						<td class="text-center">
-							<button
-								on:click={() => handlePreview(doc)}
-								class="text-blue-600 hover:underline focus:outline-none"
-								aria-label="Preview Document"
-							>
-								View
-							</button>
-							<span class="mx-1 text-gray-400">|</span>
-							<button
-								on:click={() => handleDelete(doc._id)}
-								class="text-red-600 hover:underline focus:outline-none"
-								aria-label="Delete Document"
-							>
-								Delete
-							</button>
-						</td>
-					</tr>
-				{:else}
-					<tr>
-						<td colspan="6" class="text-center text-gray-500 px-3 py-4">No documents found.</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
-	</div>
+			{:else}
+				<tr>
+					<td colspan="6" class="text-center text-gray-500 px-3 py-4">No documents found.</td>
+				</tr>
+			{/each}
+		</tbody>
+	</table>
 
 	{#if showUploadModal}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
@@ -274,31 +263,3 @@
 		</div>
 	{/if}
 </section>
-
-<style>
-	.custom-doc-table th,
-	.custom-doc-table td {
-		padding: 6px 10px;
-		font-size: 0.85rem;
-		line-height: 1.3;
-		vertical-align: middle;
-	}
-
-	.custom-doc-table th {
-		background-color: #4b5563;
-		color: white;
-		text-align: left;
-		font-size: 1.05rem;
-	}
-
-	.custom-doc-table th:last-child {
-		text-align: center;
-	}
-
-	.truncate-cell {
-		max-width: 180px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-</style>
