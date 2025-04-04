@@ -252,3 +252,10 @@ select:focus {
 .form-input {
 	@apply w-full rounded-md border bg-gray-50 px-3 py-2;
 }
+
+.truncate-cell {
+	max-width: 180px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
