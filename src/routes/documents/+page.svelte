@@ -11,6 +11,7 @@
 	let previewDoc = null;
 	let showUploadModal = false;
 	let selectedFile = null;
+	let fileInputEl;
 	let newDoc = {
 		case_id: '',
 		type: '',
@@ -50,6 +51,10 @@
 				getCaseNumber(doc.case_id).toLowerCase().includes(term)
 			);
 		});
+	}
+
+	function triggerUpload() {
+		if (fileInputEl) fileInputEl.click();
 	}
 
 	function handleUpload(event) {
@@ -134,6 +139,8 @@
 	}
 </script>
 
+<input type="file" class="hidden" bind:this={fileInputEl} on:change={handleUpload} />
+
 <section class="space-y-6">
 	<div class="flex items-center justify-between">
 		<input
@@ -143,7 +150,7 @@
 			on:input={applySearch}
 			class="w-full rounded border border-gray-300 bg-gray-50 px-4 py-2"
 		/>
-		<button class="ml-2 rounded bg-gray-800 px-4 py-2 text-white" on:click={handleUpload}>
+		<button class="ml-2 rounded bg-gray-800 px-4 py-2 text-white" on:click={triggerUpload}>
 			Upload
 		</button>
 	</div>
@@ -186,6 +193,7 @@
 			{/each}
 		</tbody>
 	</table>
+</section>
 
 	{#if showUploadModal}
 		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
@@ -240,12 +248,21 @@
 	{/if}
 
 	{#if previewDoc}
-		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-			<div class="relative h-[90%] w-full max-w-4xl overflow-hidden rounded bg-white p-4 shadow-lg">
-				<button class="absolute right-4 top-2 text-lg" on:click={closePreview}>&times;</button>
-				<h2 class="mb-2 text-lg font-semibold">Preview: {previewDoc.name}</h2>
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 px-4">
+			<div
+				class="relative max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg bg-white p-6 shadow-lg"
+			>
+				<button
+					class="absolute right-4 top-3 text-2xl text-gray-500 hover:text-black"
+					on:click={closePreview}
+				>
+					&times;
+				</button>
+
+				<h2 class="mb-4 text-lg font-semibold">Preview: {previewDoc.name}</h2>
+
 				{#if previewDoc.file_type.startsWith('application/pdf') || previewDoc.file_type.startsWith('image/')}
-					<div class="h-[calc(100%-2rem)] w-full overflow-auto rounded border">
+					<div class="h-[70vh] w-full overflow-auto rounded border">
 						<iframe
 							src={previewDoc.file_url}
 							title="Document preview"
@@ -262,4 +279,3 @@
 			</div>
 		</div>
 	{/if}
-</section>
