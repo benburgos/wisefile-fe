@@ -62,9 +62,7 @@
 			clientRecords = allClients.filter((c) => clientIds.includes(c._id));
 		} else if (user.role === 'client') {
 			// Only show invoices tied to this client's cases
-			const clientCaseIds = allCases
-				.filter((c) => c.client_id === user.clientId)
-				.map((c) => c._id);
+			const clientCaseIds = allCases.filter((c) => c.client_id === user.clientId).map((c) => c._id);
 
 			invoices = allInvoices.filter(
 				(i) =>
@@ -244,7 +242,7 @@
 		</button>
 	</div>
 
-	<table class="w-full border text-sm shadow-sm">
+	<table class="table-standard w-full border text-sm shadow-sm">
 		<thead>
 			<tr>
 				<th>Client</th>
@@ -253,7 +251,7 @@
 				<th>Amount</th>
 				<th>Due</th>
 				<th>Status</th>
-				<th class="no-ellipsis text-center">Actions</th>
+				<th class="text-center"><span class="flex justify-center">Actions</span></th>
 			</tr>
 		</thead>
 		<tbody>
@@ -264,7 +262,7 @@
 					<td>{inv.invoice_number}</td>
 					<td>${inv.amount.toFixed(2)}</td>
 					<td>{new Date(inv.due_date).toLocaleDateString()}</td>
-					<td>{inv.status}</td>
+					<td class="capitalize">{inv.status}</td>
 					<td class="no-ellipsis whitespace-nowrap text-center text-sm">
 						<span class="flex items-center justify-center gap-1">
 							<button
