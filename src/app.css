@@ -117,27 +117,42 @@ button.danger:hover {
 	background-color: #b71c1c;
 }
 
-/* Tables */
-table {
-	width: 100%;
-	border-collapse: collapse;
-	background-color: var(--color-surface);
-	box-shadow: var(--shadow-light);
-	border-radius: var(--border-radius);
-	overflow: hidden;
+/* --- Shared Layout & Table Styles --- */
+.section-standard {
+	margin-top: 1rem;
+	margin-bottom: 1rem;
+	padding: 1rem;
 }
 
-th,
-td {
-	padding: 12px;
-	border-bottom: 1px solid var(--color-border);
+.table-standard {
+	width: 100%;
+	table-layout: fixed;
+	font-size: 0.875rem; /* Tailwind's text-sm */
+	border-collapse: collapse;
+	box-shadow: var(--shadow-light);
+}
+
+.table-standard th {
+	background-color: #4b5563; /* Tailwind's bg-gray-700 */
+	color: white;
+	padding: 10px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	text-align: left;
 }
 
-th {
-	background-color: #374151; /* Tailwind's gray-700 equivalent */
-	color: var(--color-surface);
-	font-weight: bold;
+.table-standard td {
+	padding: 10px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.table-standard .no-ellipsis {
+	white-space: normal;
+	overflow: visible;
+	text-overflow: initial;
 }
 
 /* 🆕 Optional Compact Table Style */
