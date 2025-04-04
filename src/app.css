@@ -239,3 +239,16 @@ select:focus {
 	justify-content: space-between;
 	align-items: center;
 }
+
+/* Utility Classes */
+.table-section {
+	@apply rounded-lg border shadow-sm;
+}
+
+.section-header {
+	@apply rounded-t-md bg-gray-700 px-4 py-2 font-semibold text-white;
+}
+
+.form-input {
+	@apply w-full rounded-md border bg-gray-50 px-3 py-2;
+}
