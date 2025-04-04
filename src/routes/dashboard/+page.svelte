@@ -168,13 +168,13 @@
 <div>
 	<h2 class="mb-2 text-xl font-semibold">Activity</h2>
 	<div class="max-h-[calc(100vh-300px)] overflow-auto rounded-lg border shadow">
-		<table class="min-w-full table-auto">
-			<thead class="sticky top-0 border-b bg-white">
+		<table class="table-standard">
+			<thead class="sticky top-0 z-10 border-b bg-white shadow-sm">
 				<tr>
-					<th class="px-4 py-2 text-left">Action</th>
-					<th class="px-4 py-2 text-left">Entity</th>
-					<th class="px-4 py-2 text-left">Description</th>
-					<th class="px-4 py-2 text-left">Date</th>
+					<th class="w-[20%] px-4 py-2 text-left">Action</th>
+					<th class="w-[20%] px-4 py-2 text-left">Entity</th>
+					<th class="w-[40%] px-4 py-2 text-left">Description</th>
+					<th class="w-[15%] px-4 py-2 text-left">Date</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -186,6 +186,13 @@
 						<td class="px-4 py-2">{new Date(a.created_at).toLocaleDateString()}</td>
 					</tr>
 				{/each}
+				{#if activityLog.length === 0}
+					<tr>
+						<td colspan="4" class="px-4 py-6 text-center text-sm italic text-gray-500">
+							No activity logged.
+						</td>
+					</tr>
+				{/if}
 			</tbody>
 		</table>
 	</div>
