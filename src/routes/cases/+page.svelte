@@ -199,5 +199,5 @@
 
 <!-- Case Creation Modal -->
 {#if showModal}
-	<CaseCreationModal bind:showModal on:close={closeCaseModal} />
+	<CaseCreationModal isOpen={showModal} on:close={closeCaseModal} />
 {/if}
