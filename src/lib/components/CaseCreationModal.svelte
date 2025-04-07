@@ -1,9 +1,11 @@
 <script>
+	import { caseRecords } from '$lib/data/seedData';
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { createRecord, updateRecord, getAllRecords } from '$lib/localStorage';
+	import { auth } from '$lib/stores/auth';
 
 	const dispatch = createEventDispatcher();
-	export let showModal;
 
 	// Step Handling
 	let currentStep = 1;
@@ -15,6 +17,79 @@
 	}
 	function prevStep() {
 		if (currentStep > 1) currentStep--;
+	}
+
+	// Authenticated user & data
+	let user;
+	let clients = [];
+	let users = [];
+	let tenants = [];
+	// Filter tenants based on selected property
+	$: derivedTenants = (() => {
+		if (!caseDetails.addressId || caseDetails.addressId === 'new') return [];
+
+		const property = properties.find((p) => p._id === caseDetails.addressId);
+		if (!property || !property.associated_tenants?.length) return [];
+
+		return tenants.filter((t) => property.associated_tenants.includes(t._id));
+	})();
+	let properties = [];
+	let allCases = [];
+	let userDrafts = [];
+	let managementCompanies = [];
+	let originalTenantAddress = '';
+
+	onMount(() => {
+		auth.subscribe((value) => {
+			user = value?.user;
+			if (user) loadData();
+		});
+	});
+
+	function loadData() {
+		if (!user || !user.role) return;
+
+		// Load and filter records
+		const all = getAllRecords('caseRecords', user);
+		clients = getAllRecords('clients').filter((c) => c._id === user.clientId);
+		const allUsers = getAllRecords('users');
+		// Base users: those with company_id matching current client
+		const directUsers = allUsers.filter((u) => u.company_id === user.clientId);
+
+		// Extra users: from management_companies[*].users
+		let extraUserIds = [];
+		if (clients.length > 0) {
+			const mcList = clients[0].management_companies || [];
+			extraUserIds = mcList.flatMap((mc) => mc.users || []);
+		}
+
+		// Map extra users from full list (if not already included)
+		const extraUsers = allUsers.filter(
+			(u) => extraUserIds.includes(u.id) && !directUsers.some((du) => du.id === u.id)
+		);
+
+		// Combine and deduplicate
+		users = [...directUsers, ...extraUsers];
+		tenants = getAllRecords('tenants').filter((t) => t.client_id === user.clientId);
+		properties = getAllRecords('properties').filter((p) => p.client_id === user.clientId);
+
+		// Filter cases based on role
+		allCases = all.filter((c) => {
+			if (user.role === 'admin') return true;
+			if (user.role === 'client') return c.client_id === user.clientId;
+			if (user.role === 'attorney') return false;
+			if (user.role === 'operations') return c.assigned_operator === user.id;
+			return false;
+		});
+
+		// Pull out draft cases
+		userDrafts = allCases.filter((c) => c.type === 'draft');
+
+		// Get management companies from the first (and only) client
+		if (clients.length > 0) {
+			const mcList = clients[0].management_companies || [];
+			managementCompanies = mcList.map((mc) => mc.name);
+		}
 	}
 
 	// Case Model (Stored in DB Later)
@@ -30,7 +105,8 @@
 			city: '',
 			state: '',
 			jurisdiction: '',
-			gateCode: ''
+			gateCode: '',
+			propertyCode: ''
 		},
 		plaintiff: {
 			name: '',
@@ -74,50 +150,11 @@
 		}
 	};
 
-	// Address Book (Updated Model)
-	let addressBook = [
-		{
-			id: 1,
-			streetNumber: '11523',
-			streetName: 'W. Orange Blossom Ln.',
-			unitNumber: '',
-			postalCode: '85253',
-			city: 'Avondale',
-			state: 'AZ',
-			jurisdiction: 'Maricopa County',
-			gateCode: '',
-			formatted: '11523 W. Orange Blossom Ln., Avondale, AZ, 85253'
-		}
-	];
-
-	// Mock Plaintiff & Management Company Data
-	let plaintiffs = ['ABC Holdings LLC', 'XYZ Realty Group'];
-	let managementCompanies = ['ABC Property Management', 'XYZ Management Co.'];
-
-	// Mock Users for Primary Contact Selection
-	let users = [
-		{
-			id: 1,
-			name: 'Alice Johnson',
-			email: 'alice@example.com',
-			phone: '555-1234',
-			clientId: 'ABC Holdings LLC'
-		},
-		{
-			id: 2,
-			name: 'Bob Smith',
-			email: 'bob@example.com',
-			phone: '555-5678',
-			clientId: 'XYZ Realty Group'
-		}
-	];
-
 	// Handle Address Selection (Step 1)
 	function handleAddressSelection(event) {
 		const selectedValue = event.target.value;
 
 		if (selectedValue === 'new') {
-			// Reset all fields before showing the sub-form
 			caseDetails.newAddress = {
 				streetNumber: '',
 				streetName: '',
@@ -126,43 +163,63 @@
 				city: '',
 				state: '',
 				jurisdiction: '',
-				gateCode: ''
+				gateCode: '',
+				propertyCode: ''
 			};
 			caseDetails.addressId = 'new';
 			caseDetails.formattedAddress = 'Adding New Address...';
-			caseDetails.tenant.address = {}; // Reset tenant address so it's editable separately
+			originalTenantAddress = caseDetails.formattedAddress;
+			caseDetails.tenant.address.formatted = caseDetails.formattedAddress;
+			caseDetails.plaintiff.propertyId = '';
+			caseDetails.tenant.address = { formatted: '' };
 		} else {
-			let selectedAddress = addressBook.find((a) => a.id == selectedValue);
+			const selectedProperty = properties.find((p) => p._id === selectedValue);
+			if (selectedProperty) {
+				const a = selectedProperty.address;
+				const unit = a.unitNumber ? `Unit ${a.unitNumber}, ` : '';
+				const formatted = `${a.streetNumber} ${a.streetName}, ${unit}${a.city}, ${a.state}, ${a.postalCode}`;
 
-			if (selectedAddress) {
-				caseDetails.addressId = selectedAddress.id;
-				caseDetails.formattedAddress = selectedAddress.formatted; // Keep case address static
-				caseDetails.tenant.address = { ...selectedAddress }; // Allow tenant address edits
+				caseDetails.addressId = selectedProperty._id;
+				caseDetails.formattedAddress = formatted;
+				originalTenantAddress = caseDetails.formattedAddress;
+				caseDetails.tenant.address.formatted = caseDetails.formattedAddress;
+				caseDetails.plaintiff.propertyId = selectedProperty.property_code || '';
+				caseDetails.tenant.address = { ...a, formatted };
 			}
 		}
 	}
 
 	// Save New Address (Step 1)
 	function saveNewAddress() {
-		const newId = addressBook.length + 1;
+		const newId = crypto.randomUUID();
+		const a = caseDetails.newAddress;
+		const unit = a.unitNumber ? `Unit ${a.unitNumber}, ` : '';
+		const formatted = `${a.streetNumber} ${a.streetName}, ${unit}${a.city}, ${a.state}, ${a.postalCode}`;
 
-		let formattedAddress = `${caseDetails.newAddress.streetNumber} ${caseDetails.newAddress.streetName}`;
-		if (caseDetails.newAddress.unitNumber) {
-			formattedAddress += ` #${caseDetails.newAddress.unitNumber}`;
-		}
-		formattedAddress += `, ${caseDetails.newAddress.city}, ${caseDetails.newAddress.state}, ${caseDetails.newAddress.postalCode}`;
+		const newProperty = {
+			_id: newId,
+			client_id: user.clientId,
+			property_code: a.propertyCode,
+			unit_count: 1,
+			is_commercial: false,
+			occupancy_status: 'occupied',
+			address: { ...a },
+			associated_tenants: [],
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
+			is_active: true,
+			management_company: caseDetails.plaintiff.managementCompany || ''
+		};
 
-		const newEntry = { ...caseDetails.newAddress, id: newId, formatted: formattedAddress };
+		createRecord('properties', newProperty, user);
+		properties = getAllRecords('properties', user);
 
-		// Add new address to Address Book
-		addressBook = [...addressBook, newEntry];
-
-		// Update case details
 		caseDetails.addressId = newId;
-		caseDetails.formattedAddress = formattedAddress;
-
-		// Also update tenant address so it pre-fills in Step 3
-		caseDetails.tenant.address = { ...newEntry };
+		caseDetails.formattedAddress = formatted;
+		originalTenantAddress = caseDetails.formattedAddress;
+		caseDetails.tenant.address.formatted = caseDetails.formattedAddress;
+		caseDetails.plaintiff.propertyId = a.propertyCode || '';
+		caseDetails.tenant.address = { ...a, formatted };
 	}
 
 	// Handle Plaintiff Selection
@@ -177,26 +234,177 @@
 
 	// Handle Primary Contact Selection
 	function handlePrimaryContactSelection(event) {
-		let selectedUser = users.find((u) => u.id == event.target.value);
-		if (selectedUser) {
-			caseDetails.plaintiff.primaryContact = selectedUser.name;
-			caseDetails.plaintiff.primaryContactPhone = selectedUser.phone;
-			caseDetails.plaintiff.primaryContactEmail = selectedUser.email;
+		const selectedUser = users.find((u) => u._id == event.target.value);
+		if (!selectedUser) return;
+
+		caseDetails.plaintiff.primaryContact = selectedUser.name;
+		caseDetails.plaintiff.primaryContactPhone = selectedUser.phone_number;
+		caseDetails.plaintiff.primaryContactEmail = selectedUser.email;
+
+		// Add user to the selected management company if not already included
+		const client = clients[0];
+		const selectedMCName = caseDetails.plaintiff.managementCompany;
+		const selectedMC = client.management_companies?.find((mc) => mc.name === selectedMCName);
+
+		if (selectedMC && !selectedMC.users.includes(selectedUser.id)) {
+			selectedMC.users.push(selectedUser._id);
+			selectedMC.updated_at = new Date().toISOString();
+
+			updateRecord('clients', client._id, client, user);
 		}
 	}
 
-	// Tenant List Management
-	let newTenant = { firstName: '', middleName: '', lastName: '', suffix: '' };
+	function saveNewManagementCompany() {
+		if (!caseDetails.plaintiff.newManagementCompany.trim()) return;
+
+		const newId = crypto.randomUUID();
+
+		// Find the selected user, if one exists
+		const selectedUser = users.find((u) => u.name === caseDetails.plaintiff.primaryContact);
+		const userId = selectedUser?.id || null;
+
+		// Create the new management company
+		const newMC = {
+			_id: newId,
+			name: caseDetails.plaintiff.newManagementCompany,
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
+			users: userId ? [userId] : []
+		};
+
+		const client = clients[0];
+
+		// Update the client object
+		const updatedClient = {
+			...client,
+			management_companies: [...(client.management_companies || []), newMC],
+			updated_at: new Date().toISOString()
+		};
+
+		updateRecord('clients', client._id, updatedClient, user);
+
+		// Rehydrate managementCompanies dropdown
+		loadData();
+
+		// Set selected management company and clear the input
+		caseDetails.plaintiff.managementCompany = newMC.name;
+		caseDetails.plaintiff.newManagementCompany = '';
+	}
+
+	// New tenant object
+	let newTenant = {
+		firstName: '',
+		middleName: '',
+		lastName: '',
+		email: '',
+		phone: ''
+	};
+
+	function getFullName(tenant) {
+		const parts = [tenant.firstName, tenant.middleName, tenant.lastName].filter(Boolean);
+		return parts.join(' ');
+	}
 
 	function addTenant() {
 		if (newTenant.firstName.trim() && newTenant.lastName.trim()) {
-			caseDetails.tenant.tenants = [...caseDetails.tenant.tenants, { ...newTenant }];
-			newTenant = { firstName: '', middleName: '', lastName: '', suffix: '' }; // Reset fields
+			const fullName = getFullName(newTenant);
+
+			const tenantWithCode = {
+				_id: crypto.randomUUID(),
+				client_id: user.clientId,
+				full_name: fullName,
+				contact_info: {
+					email: newTenant.email || '',
+					phone: newTenant.phone || ''
+				},
+				associated_properties: [caseDetails.addressId],
+				tenant_code: caseDetails.tenant.tenantCode || '',
+				is_active: true,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString()
+			};
+
+			caseDetails.tenant.tenants = [...caseDetails.tenant.tenants, tenantWithCode];
+
+			newTenant = {
+				firstName: '',
+				middleName: '',
+				lastName: '',
+				email: '',
+				phone: ''
+			};
 		}
 	}
 
 	function removeTenant(index) {
 		caseDetails.tenant.tenants = caseDetails.tenant.tenants.filter((_, i) => i !== index);
+	}
+
+	function toggleTenantCheckbox(tenant) {
+		const exists = caseDetails.tenant.tenants.some((t) => t._id === tenant._id);
+
+		if (exists) {
+			caseDetails.tenant.tenants = caseDetails.tenant.tenants.filter((t) => t._id !== tenant._id);
+		} else {
+			const nameParts = tenant.full_name?.split(' ') || [];
+
+			caseDetails.tenant.tenants = [
+				...caseDetails.tenant.tenants,
+				{
+					firstName: nameParts[0] || '',
+					middleName: '',
+					lastName: nameParts.slice(1).join(' ') || '',
+					email: tenant.contact_info?.email || '',
+					phone: tenant.contact_info?.phone || '',
+					_id: tenant._id,
+					full_name: tenant.full_name || tenant.name || ''
+				}
+			];
+		}
+
+		// Update shared tenantCode based on first selected tenant who has one
+		const firstWithCode = tenants.find((t) =>
+			caseDetails.tenant.tenants.some((sel) => sel._id === t._id && t.tenant_code)
+		);
+
+		caseDetails.tenant.tenantCode = firstWithCode?.tenant_code || '';
+	}
+
+	function syncTenantPropertyRelationships() {
+		if (!caseDetails.addressId || !caseDetails.tenant.tenants.length) return;
+
+		const selectedProperty = properties.find((p) => p._id === caseDetails.addressId);
+		if (!selectedProperty) return;
+
+		const tenantIds = caseDetails.tenant.tenants.map((t) => t._id);
+
+		// Update the selected property with associated tenant IDs
+		const updatedTenantList = Array.from(
+			new Set([...(selectedProperty.associated_tenants || []), ...tenantIds])
+		);
+		selectedProperty.associated_tenants = updatedTenantList;
+		selectedProperty.updated_at = new Date().toISOString();
+
+		updateRecord('properties', selectedProperty._id, selectedProperty, user);
+
+		// Update each tenant with associated property ID
+		tenantIds.forEach((tid) => {
+			const tenant = tenants.find((t) => t._id === tid);
+			if (!tenant) return;
+
+			const updatedProps = Array.from(
+				new Set([...(tenant.associated_properties || []), caseDetails.addressId])
+			);
+			tenant.associated_properties = updatedProps;
+			tenant.updated_at = new Date().toISOString();
+
+			updateRecord('tenants', tenant._id, tenant, user);
+		});
+
+		// Assign first tenant’s ID to the caseDetails.tenant.tenant_id (future prep)
+		if (tenantIds.length > 0) {
+			caseDetails.tenant.tenant_id = tenantIds[0];
+		}
 	}
 
 	let newDebt = { description: '', amount: 0 };
@@ -263,6 +471,9 @@
 			return;
 		}
 
+		syncTenantPropertyRelationships(); // 🔄 Keep everything in sync
+
+		// Save the case (you likely already have a createRecord call or API post here)
 		console.log('Submitting case:', caseDetails);
 		alert('Case submitted successfully!');
 	}
@@ -325,25 +536,56 @@
 			>
 				<option value="" disabled>Select an option</option>
 				<option value="new">➕ Add New Address</option>
-				{#each addressBook as address}
-					<option value={address.id}>{address.formatted}</option>
+				{#each properties as property}
+					<option value={property._id}>
+						{property.address.streetNumber}
+						{property.address.streetName}, {property.address.city}, {property.address.state}, {property
+							.address.postalCode}
+					</option>
 				{/each}
 			</select>
+
+			{#if userDrafts.length > 0}
+				<h2 class="my-4 text-xl font-bold">Continue Saved Draft</h2>
+				<select
+					id="draft-select"
+					on:change={(e) => {
+						const selectedId = e.target.value;
+						const draft = userDrafts.find((c) => c.id === selectedId);
+						if (draft) {
+							caseDetails = structuredClone(draft);
+							currentStep = 2; // Jump to the next step with draft data
+						}
+					}}
+					class="w-full rounded-lg border p-2"
+				>
+					<option value="" disabled selected>Select a draft</option>
+					{#each userDrafts as draft}
+						<option value={draft.id}>{draft.fileName ?? 'Draft ' + draft.id}</option>
+					{/each}
+				</select>
+			{/if}
 
 			{#if caseDetails.addressId === 'new'}
 				<div class="mt-4 rounded-lg bg-gray-100 p-4">
 					<h3 class="mb-2 text-lg font-semibold">Add New Address</h3>
+					<label for="propertyCode" class="mt-2 block font-semibold">Property Code</label>
+					<input
+						id="propertyCode"
+						bind:value={caseDetails.newAddress.propertyCode}
+						class="w-full rounded-lg border p-2"
+					/>
 					<div class="grid grid-cols-2 gap-4">
 						<!-- Left Column -->
 						<div>
-							<label for="streetNumber" class="block font-semibold">Street Number</label>
+							<label for="streetNumber" class="mt-2 block font-semibold">Street Number</label>
 							<input
 								id="streetNumber"
 								bind:value={caseDetails.newAddress.streetNumber}
 								class="w-full rounded-lg border p-2"
 							/>
 
-							<label for="streetName" class="block font-semibold">Street Name</label>
+							<label for="streetName" class="mt-2 block font-semibold">Street Name</label>
 							<input
 								id="streetName"
 								bind:value={caseDetails.newAddress.streetName}
@@ -424,7 +666,7 @@
 			<label for="plaintiff-name" class="block font-semibold">Plaintiff Name</label>
 			<input
 				id="plaintiff-name"
-				value={plaintiffs[0]}
+				value={clients[0].legal_entity}
 				class="w-full rounded-lg border bg-gray-100 p-2"
 				disabled
 			/>
@@ -472,17 +714,7 @@
 
 						<!-- Save new management company and clear input -->
 						<button
-							on:click={() => {
-								if (caseDetails.plaintiff.newManagementCompany.trim()) {
-									managementCompanies = [
-										...managementCompanies,
-										caseDetails.plaintiff.newManagementCompany
-									];
-									caseDetails.plaintiff.managementCompany =
-										caseDetails.plaintiff.newManagementCompany;
-									caseDetails.plaintiff.newManagementCompany = ''; // Clear input
-								}
-							}}
+							on:click={saveNewManagementCompany}
 							class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
 						>
 							Save & Continue
@@ -497,6 +729,7 @@
 				id="property-id"
 				bind:value={caseDetails.plaintiff.propertyId}
 				class="w-full rounded-lg border p-2"
+				disabled
 			/>
 
 			<!-- Primary Contact -->
@@ -508,7 +741,7 @@
 			>
 				<option value="" disabled selected>Select Primary Contact</option>
 				{#each users as user}
-					<option value={user.id}>{user.name}</option>
+					<option value={user._id}>{user.full_name}</option>
 				{/each}
 			</select>
 
@@ -536,7 +769,35 @@
 				>
 			</div>
 		{:else if currentStep === 3}
-			<h2 class="mb-4 text-xl font-bold">Tenant / Defendant Details</h2>
+			<!-- Existing Tenants Checkbox List -->
+			{#if properties.length && caseDetails.addressId && derivedTenants.length > 0}
+				<!-- Select Existing Tenants -->
+				<fieldset class="mb-4">
+					<legend class="mb-2 block font-semibold">Select Existing Tenant(s)</legend>
+
+					<!-- Scrollable List -->
+					<div class="max-h-40 divide-y divide-gray-200 overflow-y-auto rounded-md border">
+						{#each derivedTenants as tenant (tenant._id)}
+							<label
+								for={`tenant-${tenant._id}`}
+								class="flex cursor-pointer items-center justify-between p-2 hover:bg-gray-50"
+							>
+								<div class="flex items-center gap-2">
+									<input
+										id={`tenant-${tenant._id}`}
+										type="checkbox"
+										value={tenant._id}
+										checked={caseDetails.tenant.tenants.some((t) => t._id === tenant._id)}
+										on:change={() => toggleTenantCheckbox(tenant)}
+										class="h-4 w-4"
+									/>
+									<span class="text-sm">{tenant.full_name}</span>
+								</div>
+							</label>
+						{/each}
+					</div>
+				</fieldset>
+			{/if}
 
 			<!-- Tenant Address (Editable) -->
 			<label for="tenant-address" class="block font-semibold">Tenant Address</label>
@@ -544,6 +805,15 @@
 				id="tenant-address"
 				bind:value={caseDetails.tenant.address.formatted}
 				class="w-full rounded-lg border p-2"
+				on:input={(e) => {
+					const newVal = e.target.value;
+					caseDetails.tenant.address.formatted = newVal;
+					if (newVal !== originalTenantAddress) {
+						caseDetails.tenant.forwarding_address = { formatted: newVal };
+					} else {
+						caseDetails.tenant.forwarding_address = null;
+					}
+				}}
 			/>
 
 			<!-- Tenant Code -->
@@ -552,6 +822,7 @@
 				id="tenant-code"
 				bind:value={caseDetails.tenant.tenantCode}
 				class="w-full rounded-lg border p-2"
+				readonly={caseDetails.tenant.tenants.length > 0}
 			/>
 
 			<div class="mb-4 flex gap-8">
@@ -598,9 +869,8 @@
 				</div>
 			</div>
 
-			<!-- Tenant(s) Section -->
 			<h3 class="mb-2 text-lg font-semibold">Tenant(s) List</h3>
-			<div class="grid grid-cols-4 gap-4">
+			<div class="grid grid-cols-6 gap-4">
 				<div>
 					<label for="tenant-first-name" class="block font-semibold">First Name</label>
 					<input
@@ -626,16 +896,23 @@
 					/>
 				</div>
 				<div>
-					<label for="tenant-suffix" class="block font-semibold">Suffix</label>
+					<label for="tenant-email" class="block font-semibold">Email</label>
 					<input
-						id="tenant-suffix"
-						bind:value={newTenant.suffix}
+						id="tenant-email"
+						bind:value={newTenant.email}
+						class="w-full rounded-lg border p-2"
+					/>
+				</div>
+				<div>
+					<label for="tenant-phone" class="block font-semibold">Phone</label>
+					<input
+						id="tenant-phone"
+						bind:value={newTenant.phone}
 						class="w-full rounded-lg border p-2"
 					/>
 				</div>
 			</div>
 
-			<!-- Add Tenant Button -->
 			<button
 				on:click={addTenant}
 				class="mt-2 rounded bg-[var(--color-primary)] px-4 py-2 text-white hover:bg-opacity-90"
@@ -647,25 +924,24 @@
 			{#if caseDetails.tenant.tenants.length > 0}
 				<div class="mt-4 max-h-[20vh] overflow-y-auto rounded-lg border">
 					<table class="w-full bg-white text-sm shadow-md">
-						<!-- Table Header (Sticky) -->
 						<thead class="sticky top-0 z-10 bg-gray-200 text-sm font-semibold">
 							<tr>
 								<th class="p-3 text-left">First Name</th>
 								<th class="p-3 text-left">Middle Name</th>
 								<th class="p-3 text-left">Last Name</th>
-								<th class="p-3 text-left">Suffix</th>
+								<th class="p-3 text-left">Email</th>
+								<th class="p-3 text-left">Phone</th>
 								<th class="p-3 text-left">Actions</th>
 							</tr>
 						</thead>
-
-						<!-- Table Body (Scrollable) -->
 						<tbody class="divide-y divide-gray-200">
 							{#each caseDetails.tenant.tenants as tenant, index}
 								<tr class="border-t">
-									<td class="p-3 text-sm">{tenant.firstName}</td>
-									<td class="p-3 text-sm">{tenant.middleName}</td>
-									<td class="p-3 text-sm">{tenant.lastName}</td>
-									<td class="p-3 text-sm">{tenant.suffix}</td>
+									<td class="p-2">{tenant.firstName}</td>
+									<td class="p-2">{tenant.middleName}</td>
+									<td class="p-2">{tenant.lastName}</td>
+									<td class="p-2">{tenant.email}</td>
+									<td class="p-2">{tenant.phone}</td>
 									<td class="p-3 text-sm">
 										<button
 											on:click={() => removeTenant(index)}
@@ -720,11 +996,21 @@
 					/>
 
 					<label for="unpaid-date" class="block font-semibold">Date of Current Month Unpaid</label>
+					<small class="mb-2 block text-gray-500">We'll default to the 1st of the month</small>
 					<input
 						id="unpaid-date"
 						type="date"
-						bind:value={caseDetails.rentFeesClaims.currentMonthUnpaidDate}
 						class="w-full rounded-lg border p-2"
+						value={caseDetails.rentFeesClaims.currentMonthUnpaidDate}
+						on:change={(e) => {
+							const date = new Date(e.target.value);
+							if (!isNaN(date)) {
+								const normalized = new Date(date.getFullYear(), date.getMonth(), 1);
+								caseDetails.rentFeesClaims.currentMonthUnpaidDate = normalized
+									.toISOString()
+									.split('T')[0];
+							}
+						}}
 					/>
 				</div>
 

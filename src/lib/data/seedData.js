@@ -657,6 +657,7 @@ export const documents = [
 		updated_at: new Date(),
 		tags: ['eviction', 'legal'],
 		notes: 'Served on January 15, 2024.',
+		is_temporary: false,
 		is_confidential: true,
 		is_deleted: false
 	},
@@ -676,6 +677,7 @@ export const documents = [
 		updated_at: new Date(),
 		tags: ['lease'],
 		notes: 'Tenant vacated property on June 1, 2023.',
+		is_temporary: false,
 		is_confidential: false,
 		is_deleted: false
 	},
@@ -697,6 +699,7 @@ export const documents = [
 		updated_at: new Date(),
 		tags: ['court', 'legal'],
 		notes: 'Court date scheduled for April 10, 2024.',
+		is_temporary: false,
 		is_confidential: true,
 		is_deleted: false
 	},
@@ -718,6 +721,7 @@ export const documents = [
 		updated_at: new Date(),
 		tags: ['payment'],
 		notes: 'Settlement payment received on February 10, 2024.',
+		is_temporary: false,
 		is_confidential: false,
 		is_deleted: false
 	}
