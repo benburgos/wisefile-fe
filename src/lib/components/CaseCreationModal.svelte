@@ -822,9 +822,11 @@
 			{/if}
 
 			<div class="mt-6 flex justify-between">
-				<button on:click={closeModal}>Cancel</button>
+				<button on:click={closeModal} class="rounded bg-gray-500 px-4 py-2 text-white">
+					Discard
+				</button>
 
-				<button on:click={nextStep} class="rounded bg-gray-800 px-4 py-2 text-white">Next</button>
+				<button on:click={nextStep} class="rounded bg-gray-800 px-4 py-2 text-white"> Next </button>
 			</div>
 		{:else if currentStep === 2}
 			<h2 class="mb-4 text-xl font-bold">Plaintiff Details</h2>
@@ -939,10 +941,16 @@
 
 			<!-- Navigation -->
 			<div class="mt-6 flex justify-between">
-				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
-				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
-					>Next</button
+				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white"> Back </button>
+
+				<button
+					on:click={saveAsDraft}
+					class="rounded bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700"
 				>
+					Save as Draft
+				</button>
+
+				<button on:click={nextStep} class="rounded bg-gray-800 px-4 py-2 text-white"> Next </button>
 			</div>
 		{:else if currentStep === 3}
 			<!-- Existing Tenants Checkbox List -->
@@ -1135,10 +1143,16 @@
 
 			<!-- Navigation -->
 			<div class="mt-6 flex justify-between">
-				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
-				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
-					>Next</button
+				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white"> Back </button>
+
+				<button
+					on:click={saveAsDraft}
+					class="rounded bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700"
 				>
+					Save as Draft
+				</button>
+
+				<button on:click={nextStep} class="rounded bg-gray-800 px-4 py-2 text-white"> Next </button>
 			</div>
 		{:else if currentStep === 4}
 			<h2 class="mb-4 text-xl font-bold">Rent / Fees / Claims</h2>
@@ -1375,10 +1389,16 @@
 
 			<!-- Navigation -->
 			<div class="mt-6 flex justify-between">
-				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
-				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
-					>Next</button
+				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white"> Back </button>
+
+				<button
+					on:click={saveAsDraft}
+					class="rounded bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700"
 				>
+					Save as Draft
+				</button>
+
+				<button on:click={nextStep} class="rounded bg-gray-800 px-4 py-2 text-white"> Next </button>
 			</div>
 		{:else if currentStep === 5}
 			<h2 class="mb-4 text-xl font-bold">Additional Information</h2>
@@ -1509,10 +1529,16 @@
 
 			<!-- Navigation -->
 			<div class="mt-6 flex justify-between">
-				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
-				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white">
-					Next
+				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white"> Back </button>
+
+				<button
+					on:click={saveAsDraft}
+					class="rounded bg-yellow-600 px-4 py-2 text-white hover:bg-yellow-700"
+				>
+					Save as Draft
 				</button>
+
+				<button on:click={nextStep} class="rounded bg-gray-800 px-4 py-2 text-white"> Next </button>
 			</div>
 		{:else if currentStep === totalSteps}
 			<h2 class="mb-4 text-xl font-bold">Acknowledgment & Submission</h2>
@@ -1579,15 +1605,14 @@
 
 				<button
 					on:click={submitCase}
-					class="relative flex items-center justify-center rounded bg-[var(--color-primary)] px-4 py-2 text-white disabled:opacity-60"
+					class="flex items-center justify-center gap-2 rounded bg-gray-800 px-4 py-2 text-white disabled:opacity-50"
 					disabled={!caseDetails.acknowledgment.rentalReliefConfirmed ||
 						!caseDetails.acknowledgment.statementsConfirmed ||
 						isSubmitting}
 				>
 					{#if isSubmitting}
-						<!-- Spinner -->
 						<svg
-							class="h-5 w-5 animate-spin text-white"
+							class="h-4 w-4 animate-spin text-white"
 							xmlns="http://www.w3.org/2000/svg"
 							fill="none"
 							viewBox="0 0 24 24"
@@ -1599,10 +1624,14 @@
 								r="10"
 								stroke="currentColor"
 								stroke-width="4"
-							></circle>
-							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-							></path>
+							/>
+							<path
+								class="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+							/>
 						</svg>
+						Saving...
 					{:else}
 						Submit Case
 					{/if}
