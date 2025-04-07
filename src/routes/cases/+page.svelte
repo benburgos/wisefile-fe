@@ -44,7 +44,7 @@
 
 		allCases = all.filter((c) => {
 			if (user.role === 'admin') return true;
-			if (user.role === 'client') return c.client_id === user.client_id;
+			if (user.role === 'client') return c.client_id === user.clientId;
 			if (user.role === 'attorney') return false;
 			if (user.role === 'operator') return c.assigned_operator === user.id;
 			return false;
