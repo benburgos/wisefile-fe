@@ -1,3 +1,5 @@
+<!-- Start back at this step: ✅ Step 1: transformCaseDetailsToModel() Helper
+ -->
 <script>
 	import { caseRecords } from '$lib/data/seedData';
 	import { onMount } from 'svelte';
@@ -117,6 +119,21 @@
 		}
 	}
 
+	function loadDraftCase(draft) {
+		if (!draft) return;
+
+		// Use the clean snapshot if it exists
+		if (draft._form_snapshot) {
+			caseDetails = structuredClone(draft._form_snapshot);
+			caseDetails._id = draft._id; // Just in case
+		} else {
+			// Fallback for legacy drafts
+			caseDetails = structuredClone(draft);
+		}
+
+		currentStep = 2;
+	}
+
 	// Case Model (Stored in DB Later)
 	let caseDetails = {
 		type: 'filing', // this is correct and all you need
@@ -203,6 +220,41 @@
 		created_at: '',
 		updated_at: ''
 	};
+
+	function transformCaseDetailsToModel(caseDetails, user, isDraft = false) {
+		const now = new Date().toISOString();
+		const caseId = caseDetails._id || crypto.randomUUID();
+
+		const transformed = {
+			_id: caseId,
+			client_id: user.clientId,
+			type: isDraft ? 'draft' : caseDetails.caseType || 'filing',
+			status: isDraft ? 'Draft' : 'Demand Posted',
+			sub_status: null,
+			case_number: null, // We'll generate this separately
+			property_id: caseDetails.addressId || null,
+			tenant_id: caseDetails.tenant.tenants?.[0]?._id || null,
+			related_case_ids: [],
+			related_case_documents: [],
+			related_case_invoices: [],
+			related_case_fees: [],
+			related_case_messages: [],
+			start_date: now,
+			end_date: null,
+			description: '',
+			courtName: null,
+			courtCaseNumber: null,
+			courtDecision: null,
+			assigned_attorney: null,
+			assigned_operator: user.id,
+			internal_notes: [],
+			created_at: caseDetails.created_at || now,
+			updated_at: now,
+			is_active: true
+		};
+
+		return transformed;
+	}
 
 	// Handle Address Selection (Step 1)
 	function handleAddressSelection(event) {
@@ -558,21 +610,64 @@
 		);
 	}
 
-	function saveAsDraft() {
-		const draftId = caseDetails._id || crypto.randomUUID();
-
-		caseDetails._id = draftId;
-		caseDetails.client_id = user.clientId;
-		caseDetails.created_at = caseDetails.created_at || new Date().toISOString();
-		caseDetails.updated_at = new Date().toISOString();
-		caseDetails.type = 'draft';
-
-		console.log('Saving as draft:', caseDetails);
-
-		createRecord('caseRecords', caseDetails, user);
+	function generateCaseNumber(clientId) {
+		const prefix = clientId?.split('-')[0]?.toUpperCase() || 'CASE';
+		const randomDigits = Math.floor(1000 + Math.random() * 9000);
+		return `${prefix}-CASE-${randomDigits}`;
 	}
 
-	function submitCase() {
+	function formatCaseDetailsForSave(rawCaseDetails, userId, type = 'draft') {
+		const caseId = rawCaseDetails._id || crypto.randomUUID();
+		const timestamp = new Date().toISOString();
+
+		// Default to first tenant if one exists (for tenant_id)
+		const primaryTenant = rawCaseDetails.tenant?.tenants?.[0] || {};
+		const propertyId = rawCaseDetails.addressId;
+
+		return {
+			_id: caseId,
+			case_number: rawCaseDetails.case_number ?? generateCaseNumber(), // Optional: if you want to preassign it
+			client_id: user.clientId,
+			type,
+			status: type === 'case' ? 'Demand Posted' : null,
+			sub_status: null,
+			courtName: null,
+			courtCaseNumber: null,
+			courtDecision: null,
+			property_id: propertyId ?? null,
+			tenant_id: primaryTenant._id ?? null,
+			related_case_ids: [],
+			related_case_documents: [],
+			related_case_invoices: [],
+			related_case_fees: [],
+			related_case_messages: [],
+			start_date: null,
+			end_date: null,
+			description: '',
+			internal_notes: [],
+			assigned_attorney: null,
+			assigned_operator: userId ?? null,
+			created_at: rawCaseDetails.created_at || timestamp,
+			updated_at: timestamp,
+			is_active: true,
+			// Store full detail for loading/editing later (optional if needed)
+			_form_snapshot: structuredClone(rawCaseDetails)
+		};
+	}
+
+	function saveAsDraft() {
+		try {
+			const draftModel = transformCaseDetailsToModel(caseDetails, user, true);
+			draftModel._form_snapshot = structuredClone(caseDetails); // snapshot for reloading
+			createRecord('caseRecords', draftModel, user);
+			alert('Draft saved!');
+		} catch (error) {
+			console.error('Error saving draft:', error);
+			alert('There was a problem saving the draft.');
+		}
+	}
+
+	async function submitCase() {
 		if (
 			!caseDetails.acknowledgment.rentalReliefConfirmed ||
 			!caseDetails.acknowledgment.statementsConfirmed
@@ -583,45 +678,42 @@
 
 		isSubmitting = true;
 
-		// Disable the submit button to prevent multiple submissions
-		document.getElementById('submit-button').disabled = true;
-
 		try {
-			// 1. Assign unique ID and timestamps
-			const caseId = crypto.randomUUID();
-			caseDetails._id = caseId;
-			caseDetails.client_id = user.clientId;
-			caseDetails.created_at = new Date().toISOString();
-			caseDetails.updated_at = new Date().toISOString();
-			caseDetails.type = 'case'; // Not a draft anymore
+			const now = new Date().toISOString();
+			const caseModel = transformCaseDetailsToModel(caseDetails, user, false);
 
-			// 2. Finalize Documents
+			caseModel.case_number = generateCaseNumber(user.clientId);
+			caseModel.updated_at = now;
+			caseModel.created_at = caseModel.created_at || now;
+
+			// Finalize documents
 			const allDocs = getAllRecords('documents', user);
 			const draftDocs = allDocs.filter(
 				(doc) => doc.is_temporary && !doc.is_deleted && doc.uploaded_by === user.id
 			);
 
 			draftDocs.forEach((doc) => {
-				doc.case_id = caseId;
+				doc.case_id = caseModel._id;
 				doc.is_temporary = false;
-				doc.updated_at = new Date().toISOString();
+				doc.updated_at = now;
 				updateRecord('documents', doc._id, doc, user);
 			});
 
-			// 3. Update Tenants
+			// Finalize tenants
 			const property = getAllRecords('properties', user).find(
 				(p) => p._id === caseDetails.addressId
 			);
+
 			caseDetails.tenant.tenants.forEach((tenant) => {
 				tenant.full_name = getFullName(tenant);
 				tenant.client_id = user.clientId;
 				tenant._id = tenant._id || crypto.randomUUID();
-				tenant.created_at = new Date().toISOString();
-				tenant.updated_at = new Date().toISOString();
+				tenant.created_at = now;
+				tenant.updated_at = now;
 				tenant.is_active = true;
-				tenant.associated_properties = [caseDetails.addressId];
+				tenant.associated_properties = [property._id];
 
-				// Forwarding address logic
+				// Forwarding logic
 				if (caseDetails.tenant.address.formatted !== caseDetails.formattedAddress) {
 					tenant.forwarding_address = { ...caseDetails.tenant.address };
 				}
@@ -633,21 +725,19 @@
 				}
 			});
 
-			// Update property with new tenant associations
-			property.updated_at = new Date().toISOString();
+			// Update property record
+			property.updated_at = now;
 			updateRecord('properties', property._id, property, user);
 
-			// 4. Save the case
-			createRecord('caseRecords', caseDetails, user);
+			// Save case record
+			createRecord('caseRecords', caseModel, user);
 
-			goto(`/cases/${caseId}`);
+			goto(`/cases/${caseModel._id}`);
 		} catch (error) {
 			console.error('Error submitting case:', error);
-			alert('There was a problem submitting the case. Please try again.');
+			alert('There was a problem submitting the case.');
 		} finally {
 			isSubmitting = false;
-			// Re-enable the submit button
-			document.getElementById('submit-button').disabled = false;
 		}
 	}
 
@@ -763,17 +853,16 @@
 					id="draft-select"
 					on:change={(e) => {
 						const selectedId = e.target.value;
-						const draft = userDrafts.find((c) => c.id === selectedId);
-						if (draft) {
-							caseDetails = structuredClone(draft);
-							currentStep = 2; // Jump to the next step with draft data
-						}
+						const draft = userDrafts.find((c) => c._id === selectedId);
+						loadDraftCase(draft);
 					}}
 					class="w-full rounded-lg border p-2"
 				>
 					<option value="" disabled selected>Select a draft</option>
 					{#each userDrafts as draft}
-						<option value={draft.id}>{draft.fileName ?? 'Draft ' + draft.id}</option>
+						<option value={draft._id}
+							>{draft.case_number ?? 'Draft ' + draft._id.slice(0, 6)}</option
+						>
 					{/each}
 				</select>
 			{/if}
