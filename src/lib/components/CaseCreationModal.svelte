@@ -4,12 +4,14 @@
 	import { createEventDispatcher } from 'svelte';
 	import { createRecord, updateRecord, getAllRecords } from '$lib/localStorage';
 	import { auth } from '$lib/stores/auth';
+	import { goto } from '$app/navigation';
 
 	const dispatch = createEventDispatcher();
 
 	// Step Handling
 	let currentStep = 1;
 	let totalSteps = 6;
+	let isSubmitting = false;
 
 	function nextStep() {
 		if (currentStep < totalSteps) currentStep++;
@@ -84,6 +86,29 @@
 
 		// Pull out draft cases
 		userDrafts = allCases.filter((c) => c.type === 'draft');
+
+		// Load temporary documents the user has uploaded
+		const allDocuments = getAllRecords('documents', user);
+		const draftDocs = allDocuments.filter(
+			(doc) => doc.is_temporary && !doc.is_deleted && doc.uploaded_by === user.id
+		);
+
+		// Separate standard required docs
+		['lease', 'ledger', 'demand', 'ownershipDeed'].forEach((docType) => {
+			const match = draftDocs.find((d) => d.type.toLowerCase() === docType);
+			if (match) {
+				caseDetails.documents[docType] = {
+					file: match.name || '',
+					status: match.status || '',
+					explanation: match.notes || ''
+				};
+			}
+		});
+
+		// Load additional documents
+		caseDetails.documents.additionalDocs = draftDocs.filter(
+			(doc) => !['lease', 'ledger', 'demand', 'ownershipdeed'].includes(doc.type.toLowerCase())
+		);
 
 		// Get management companies from the first (and only) client
 		if (clients.length > 0) {
@@ -429,9 +454,34 @@
 
 	function handleFileUpload(event, type) {
 		const file = event.target.files[0];
-		if (file) {
-			caseDetails.documents[type].file = file.name; // Storing file name for display
-		}
+		if (!file || !user) return;
+
+		const tempId = crypto.randomUUID();
+		const documentRecord = {
+			_id: tempId,
+			client_id: user.clientId,
+			case_id: null, // Assigned later
+			type,
+			name: file.name,
+			file_path: `/temp/${file.name}`, // Placeholder if not uploaded to backend
+			file_url: '', // Placeholder
+			file_size: file.size,
+			file_type: file.type,
+			uploaded_by: user.id,
+			uploaded_at: new Date(),
+			updated_at: new Date(),
+			tags: [],
+			notes: '',
+			is_confidential: false,
+			is_deleted: false,
+			is_temporary: true
+		};
+
+		// Save to localStorage for now
+		createRecord('documents', documentRecord, user);
+
+		// Store filename in caseDetails for UI binding
+		caseDetails.documents[type].file = file.name;
 	}
 
 	function handleDocumentStatus(type, event) {
@@ -441,18 +491,35 @@
 	let newAdditionalDoc = { file: '', type: '', notes: '' };
 
 	function addAdditionalDocument() {
-		if (!newAdditionalDoc.file || !newAdditionalDoc.type) return; // Ensure valid entry
+		if (!newAdditionalDoc.file || !newAdditionalDoc.type) return;
 
-		// Update the array in a reactive way
-		caseDetails.documents.additionalDocs = [
-			...caseDetails.documents.additionalDocs,
-			{ ...newAdditionalDoc }
-		];
+		const newDoc = {
+			_id: crypto.randomUUID(),
+			client_id: user.clientId,
+			case_id: null,
+			type: newAdditionalDoc.type,
+			name: newAdditionalDoc.file,
+			notes: newAdditionalDoc.notes,
+			file_path: `/temp/${newAdditionalDoc.file}`,
+			file_url: '', // Add if you want previews later
+			file_size: 0,
+			file_type: '', // could use MIME if you're parsing the File object
+			uploaded_by: user.id,
+			uploaded_at: new Date(),
+			updated_at: new Date(),
+			tags: [],
+			is_confidential: false,
+			is_deleted: false,
+			is_temporary: true // ← important
+		};
 
-		// Reset the input fields
+		createRecord('documents', newDoc, user);
+
+		// Also add to local state for immediate display
+		caseDetails.documents.additionalDocs = [...caseDetails.documents.additionalDocs, newDoc];
+
+		// Reset fields
 		newAdditionalDoc = { file: '', type: '', notes: '' };
-
-		// Manually reset the file input
 		document.getElementById('additional-file').value = '';
 	}
 
@@ -460,6 +527,18 @@
 		caseDetails.documents.additionalDocs = caseDetails.documents.additionalDocs.filter(
 			(_, i) => i !== index
 		);
+	}
+
+	function saveAsDraft() {
+		const draftId = caseDetails._id || crypto.randomUUID();
+
+		caseDetails._id = draftId;
+		caseDetails.client_id = user.clientId;
+		caseDetails.created_at = caseDetails.created_at || new Date().toISOString();
+		caseDetails.updated_at = new Date().toISOString();
+		caseDetails.type = 'draft';
+
+		createRecord('caseRecords', caseDetails, user);
 	}
 
 	function submitCase() {
@@ -471,21 +550,84 @@
 			return;
 		}
 
-		syncTenantPropertyRelationships(); // 🔄 Keep everything in sync
+		isSubmitting = true;
 
-		// Save the case (you likely already have a createRecord call or API post here)
-		console.log('Submitting case:', caseDetails);
-		alert('Case submitted successfully!');
+		// Disable the submit button to prevent multiple submissions
+		document.getElementById('submit-button').disabled = true;
+
+		try {
+			// 1. Assign unique ID and timestamps
+			const caseId = crypto.randomUUID();
+			caseDetails._id = caseId;
+			caseDetails.client_id = user.clientId;
+			caseDetails.created_at = new Date().toISOString();
+			caseDetails.updated_at = new Date().toISOString();
+			caseDetails.type = 'case'; // Not a draft anymore
+
+			// 2. Finalize Documents
+			const allDocs = getAllRecords('documents', user);
+			const draftDocs = allDocs.filter(
+				(doc) => doc.is_temporary && !doc.is_deleted && doc.uploaded_by === user.id
+			);
+
+			draftDocs.forEach((doc) => {
+				doc.case_id = caseId;
+				doc.is_temporary = false;
+				doc.updated_at = new Date().toISOString();
+				updateRecord('documents', doc._id, doc, user);
+			});
+
+			// 3. Update Tenants
+			const property = getAllRecords('properties', user).find(
+				(p) => p._id === caseDetails.addressId
+			);
+			caseDetails.tenant.tenants.forEach((tenant) => {
+				tenant.full_name = getFullName(tenant);
+				tenant.client_id = user.clientId;
+				tenant._id = tenant._id || crypto.randomUUID();
+				tenant.created_at = new Date().toISOString();
+				tenant.updated_at = new Date().toISOString();
+				tenant.is_active = true;
+				tenant.associated_properties = [caseDetails.addressId];
+
+				// Forwarding address logic
+				if (caseDetails.tenant.address.formatted !== caseDetails.formattedAddress) {
+					tenant.forwarding_address = { ...caseDetails.tenant.address };
+				}
+
+				createRecord('tenants', tenant, user);
+
+				if (!property.associated_tenants.includes(tenant._id)) {
+					property.associated_tenants.push(tenant._id);
+				}
+			});
+
+			// Update property with new tenant associations
+			property.updated_at = new Date().toISOString();
+			updateRecord('properties', property._id, property, user);
+
+			// 4. Save the case
+			createRecord('caseRecords', caseDetails, user);
+
+			goto(`/cases/${caseId}`);
+		} catch (error) {
+			console.error('Error submitting case:', error);
+			alert('There was a problem submitting the case. Please try again.');
+		} finally {
+			isSubmitting = false;
+			// Re-enable the submit button
+			document.getElementById('submit-button').disabled = false;
+		}
 	}
 
 	function closeModal() {
 		dispatch('close');
-		showModal = false;
-		// Clear form fields
+
+		// Optional: reset everything only if not navigating back to a saved draft
 		caseDetails = {
 			caseType: '',
-			plaintiff: { name: '', managementCompany: '', propertyId: '' },
-			tenant: { address: '', tenantCode: '', tenants: [] },
+			addressId: '',
+			formattedAddress: '',
 			newAddress: {
 				streetNumber: '',
 				streetName: '',
@@ -494,10 +636,49 @@
 				city: '',
 				state: '',
 				jurisdiction: '',
-				gateCode: ''
+				gateCode: '',
+				propertyCode: ''
 			},
-			fees: [],
-			rentFeesClaims: { baseRent: 0, monthsUnpaid: 0, lateFee: 0, miscDebts: [] }
+			plaintiff: {
+				name: '',
+				managementCompany: '',
+				newManagementCompany: '',
+				propertyId: '',
+				primaryContact: '',
+				primaryContactPhone: '',
+				primaryContactEmail: ''
+			},
+			tenant: {
+				address: {},
+				tenantCode: '',
+				hasUnattachedProperty: false,
+				includeAllOthers: false,
+				tenants: []
+			},
+			rentFeesClaims: {
+				filingPoNumber: '',
+				baseRent: 0,
+				holdover: false,
+				monthsUnpaid: 0,
+				currentMonthUnpaidDate: '',
+				isSubsidized: false,
+				rentalReliefApplication: false,
+				lateFee: 0,
+				lateMonths: 0,
+				filingFee: 0,
+				miscDebts: []
+			},
+			documents: {
+				lease: { file: null, status: '', explanation: '' },
+				ledger: { file: null, status: '', explanation: '' },
+				demand: { file: null, status: '', explanation: '' },
+				ownershipDeed: { file: null, status: '', explanation: '' },
+				additionalDocs: []
+			},
+			acknowledgment: {
+				rentalReliefConfirmed: false,
+				statementsConfirmed: false
+			}
 		};
 	}
 </script>
@@ -509,7 +690,7 @@
 		<div class="sticky top-0 z-10 mb-4 w-full">
 			<div class="rounded-full bg-gray-200 p-2">
 				<div
-					class="rounded-full bg-[var(--color-primary)] p-1 text-center text-xs leading-none text-white"
+					class="rounded-full bg-gray-600 p-1 text-center text-xs leading-none text-white"
 					style="width: {(currentStep / totalSteps) * 100}%"
 				>
 					Step {currentStep} of {totalSteps}
@@ -633,10 +814,7 @@
 						>
 							Discard
 						</button>
-						<button
-							on:click={saveNewAddress}
-							class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
-						>
+						<button on:click={saveNewAddress} class="rounded bg-gray-800 px-4 py-2 text-white">
 							Save & Continue
 						</button>
 					</div>
@@ -646,9 +824,7 @@
 			<div class="mt-6 flex justify-between">
 				<button on:click={closeModal}>Cancel</button>
 
-				<button on:click={nextStep} class="rounded bg-[var(--color-primary)] px-4 py-2 text-white"
-					>Next</button
-				>
+				<button on:click={nextStep} class="rounded bg-gray-800 px-4 py-2 text-white">Next</button>
 			</div>
 		{:else if currentStep === 2}
 			<h2 class="mb-4 text-xl font-bold">Plaintiff Details</h2>
@@ -1399,16 +1575,37 @@
 
 			<!-- Navigation & Submission -->
 			<div class="mt-6 flex justify-between">
-				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white">Back</button>
+				<button on:click={prevStep} class="rounded bg-gray-500 px-4 py-2 text-white"> Back </button>
 
-				<!-- Submit Button (Disabled Until Both Checkboxes Are Checked) -->
 				<button
 					on:click={submitCase}
-					class="hover:bg-[var(--color-primary)]-opacity-90 rounded bg-[var(--color-primary)] px-4 py-2 text-white"
+					class="relative flex items-center justify-center rounded bg-[var(--color-primary)] px-4 py-2 text-white disabled:opacity-60"
 					disabled={!caseDetails.acknowledgment.rentalReliefConfirmed ||
-						!caseDetails.acknowledgment.statementsConfirmed}
+						!caseDetails.acknowledgment.statementsConfirmed ||
+						isSubmitting}
 				>
-					Submit Case
+					{#if isSubmitting}
+						<!-- Spinner -->
+						<svg
+							class="h-5 w-5 animate-spin text-white"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+						>
+							<circle
+								class="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								stroke-width="4"
+							></circle>
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+							></path>
+						</svg>
+					{:else}
+						Submit Case
+					{/if}
 				</button>
 			</div>
 		{/if}
