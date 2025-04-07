@@ -119,7 +119,7 @@
 
 	// Case Model (Stored in DB Later)
 	let caseDetails = {
-		caseType: 'filing',
+		type: 'filing', // this is correct and all you need
 		addressId: '',
 		formattedAddress: '',
 		newAddress: {
@@ -149,6 +149,7 @@
 			includeAllOthers: false,
 			tenants: []
 		},
+		// Financials
 		rentFeesClaims: {
 			filingPoNumber: '',
 			baseRent: 0,
@@ -160,19 +161,47 @@
 			lateFee: 0,
 			lateMonths: 0,
 			filingFee: 0,
-			miscDebts: []
+			miscDebts: [] // [{ description, amount }]
 		},
+
+		// Documents
 		documents: {
 			lease: { file: null, status: '', explanation: '' },
 			ledger: { file: null, status: '', explanation: '' },
 			demand: { file: null, status: '', explanation: '' },
 			ownershipDeed: { file: null, status: '', explanation: '' },
-			additionalDocs: [] // Array of uploaded additional documents
+			additionalDocs: [] // [{ file, type, notes }]
 		},
+
+		// Acknowledgment (checkboxes)
 		acknowledgment: {
-			rentalReliefConfirmed: false, // User confirms understanding of rental relief
-			statementsConfirmed: false // User affirms the accuracy of statements
-		}
+			rentalReliefConfirmed: false,
+			statementsConfirmed: false
+		},
+
+		// System Fields (populated on submit)
+		_id: '', // UUID
+		case_number: '', // e.g. SRP-CASE-001 (can be generated later)
+		client_id: '', // Populated from user.clientId
+		property_id: '', // same as addressId
+		tenant_id: '', // primary tenant from tenant.tenants[0] if exists
+		assigned_attorney: null,
+		assigned_operator: null,
+		internal_notes: [],
+		start_date: '', // Optional override
+		end_date: '',
+		courtName: null,
+		courtCaseNumber: null,
+		courtDecision: '',
+		description: '', // Optional
+		related_case_ids: [],
+		related_case_documents: [],
+		related_case_invoices: [],
+		related_case_fees: [],
+		related_case_messages: [],
+		is_active: true,
+		created_at: '',
+		updated_at: ''
 	};
 
 	// Handle Address Selection (Step 1)
@@ -537,6 +566,8 @@
 		caseDetails.created_at = caseDetails.created_at || new Date().toISOString();
 		caseDetails.updated_at = new Date().toISOString();
 		caseDetails.type = 'draft';
+
+		console.log('Saving as draft:', caseDetails);
 
 		createRecord('caseRecords', caseDetails, user);
 	}
