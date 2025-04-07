@@ -37,8 +37,8 @@
 	function loadData() {
 		if (!user || !user.role) return [];
 		const all = getAllRecords('caseRecords', user);
-		clients = getAllRecords('clients', user);
-		users = getAllRecords('users', user);
+		clients = getAllRecords('clients');
+		users = getAllRecords('users');
 		tenants = getAllRecords('tenants', user);
 		properties = getAllRecords('properties', user);
 
